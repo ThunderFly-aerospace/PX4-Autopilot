@@ -90,7 +90,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	autogyro_takeoff_status.state = (int) _state;
 	_autogyro_takeoff_status_pub.publish(autogyro_takeoff_status);
 
-    _climbout = true;
+	_climbout = true;
 
 	// if (alt_agl > _param_fw_clmbout_diff.get && airspeed > _param_fw_airspd_min.get()) {
 	//     _state = AutogyroTakeoffState::FLY;
@@ -106,7 +106,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    IN: error state
 	*/
 	case AutogyroTakeoffState::TAKEOFF_ERROR:
-        PX4_INFO("ERR STATE");
+		PX4_INFO("ERR STATE");
 		break;
 
 
@@ -119,16 +119,17 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START:
 
 		PX4_INFO("#Takeoff: rpm %f", (double) rotor_rpm);
+
 		if (rotor_rpm > _param_ag_prerotator_minimal_rpm.get()) {
 			if (_param_ag_prerotator_type.get() == 2) { // Eletronic prerotator controlled from autopilot
 				if (doPrerotate()) {
-                    play_next_tone();
+					play_next_tone();
 					_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 					_time_in_state = now;
 				}
 
 			} else { // manual prerotator or manually controlled
-                play_next_tone();
+				play_next_tone();
 				_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 				_time_in_state = now;
 				//TODO: Play sound
@@ -155,7 +156,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 		if (rotor_rpm > _param_ag_prerotator_target_rpm.get()) {
 			_state = AutogyroTakeoffState::PRE_TAKEOFF_DONE;
 			_time_in_state = now;
-            play_next_tone();
+			play_next_tone();
 			mavlink_log_info(mavlink_log_pub, "Takeoff, prerotator RPM reached");
 		}
 
@@ -215,12 +216,12 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
 			// Wait for ACK from platform
 			PX4_INFO("!!!!!!!!!!!!!!!!!!!!!!  RELEASE, agl: %f", (double) alt_agl);
-            play_release_tone();
+			play_release_tone();
 
 			if (alt_agl > _param_rwto_nav_alt.get()) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
 				_state = AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
-                play_next_tone();
+				play_next_tone();
 				_time_in_state = now;
 
 

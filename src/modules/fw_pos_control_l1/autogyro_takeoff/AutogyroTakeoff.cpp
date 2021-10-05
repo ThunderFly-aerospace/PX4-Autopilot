@@ -82,13 +82,15 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			     double current_lat, double current_lon, orb_advert_t *mavlink_log_pub)
 {
 
-	PX4_INFO("State: %d", _state);
-	PX4_INFO("RPM: %f", (double) rotor_rpm);
+//TF	PX4_INFO("State: %d", _state);
+//TF	PX4_INFO("RPM: %f", (double) rotor_rpm);
 
 	autogyro_takeoff_status_s autogyro_takeoff_status = {};
 	autogyro_takeoff_status.time_in_state = _time_in_state - now;
 	autogyro_takeoff_status.state = (int) _state;
 	_autogyro_takeoff_status_pub.publish(autogyro_takeoff_status);
+
+    _climbout = true;
 
 	// if (alt_agl > _param_fw_clmbout_diff.get && airspeed > _param_fw_airspd_min.get()) {
 	//     _state = AutogyroTakeoffState::FLY;
@@ -104,7 +106,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    IN: error state
 	*/
 	case AutogyroTakeoffState::TAKEOFF_ERROR:
-
+        PX4_INFO("ERR STATE");
 		break;
 
 
@@ -116,15 +118,17 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	*/
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START:
 
-		//PX4_INFO("#Takeoff: rpm %g", rotor_rpm);
+		PX4_INFO("#Takeoff: rpm %f", (double) rotor_rpm);
 		if (rotor_rpm > _param_ag_prerotator_minimal_rpm.get()) {
 			if (_param_ag_prerotator_type.get() == 2) { // Eletronic prerotator controlled from autopilot
 				if (doPrerotate()) {
+                    play_next_tone();
 					_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 					_time_in_state = now;
 				}
 
 			} else { // manual prerotator or manually controlled
+                play_next_tone();
 				_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 				_time_in_state = now;
 				//TODO: Play sound
@@ -145,12 +149,13 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    PROCESS: increase rotor RPM to flight RPM
 	    OUT: rotor in flight state
 	*/
-	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
+	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:  // 0
 
 		//TODO: Zde se rozhodovat podle typu prerotatoru. Pokud je ovladany z autopilota, zjisti jeho stav ze zpravy
 		if (rotor_rpm > _param_ag_prerotator_target_rpm.get()) {
 			_state = AutogyroTakeoffState::PRE_TAKEOFF_DONE;
 			_time_in_state = now;
+            play_next_tone();
 			mavlink_log_info(mavlink_log_pub, "Takeoff, prerotator RPM reached");
 		}
 
@@ -163,7 +168,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    IN: rotor prepared;
 	    OUT: rotor prepared; minimal airspeed; motor max power,
 	*/
-	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
+	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {     // 1
 			bool ready_for_release = true;
 
 			// check minimal rotor RPM again
@@ -188,7 +193,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				_time_in_state = now;
 				// TODO: pripravit funkci do release
 				mavlink_log_info(mavlink_log_pub, "Takeoff, Please release.");
-				play_final_tone();
+				play_next_tone();
 
 				//doRelease();
 
@@ -210,10 +215,12 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
 			// Wait for ACK from platform
 			PX4_INFO("!!!!!!!!!!!!!!!!!!!!!!  RELEASE, agl: %f", (double) alt_agl);
+            play_release_tone();
 
 			if (alt_agl > _param_rwto_nav_alt.get()) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
 				_state = AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
+                play_next_tone();
 				_time_in_state = now;
 
 
@@ -365,7 +372,7 @@ float AutogyroTakeoff::getYaw(float navigatorYaw)
  */
 float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 {
-	PX4_INFO("GET THROTTLE, %d", (int) _state);
+//	PX4_INFO("GET THROTTLE, %d", (int) _state);
 
 	switch (_state) {
 
@@ -395,7 +402,7 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 
 	// TAKEOFF_CLIMBOUT a FLY
 	default:
-		PX4_INFO("CLIMBOUT....");
+//		PX4_INFO("CLIMBOUT....");
 		return tecsThrottle;
 	}
 }
@@ -459,30 +466,30 @@ void AutogyroTakeoff::reset()
 
 
 
-void AutogyroTakeoff::play_happy_tone()
+void AutogyroTakeoff::play_next_tone()
 {
 	tune_control_s tune_control{};
-	tune_control.tune_id = tune_control_s::TUNE_ID_NOTIFY_NEUTRAL;
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+	tune_control.tune_id = tune_control_s::TUNE_ID_TAKEOFF_NEXT_STEP;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_MAX;
 	tune_control.timestamp = hrt_absolute_time();
 	_tune_control.publish(tune_control);
 }
 
-void AutogyroTakeoff::play_sad_tone()
+void AutogyroTakeoff::play_error_tone()
 {
 	tune_control_s tune_control{};
-	tune_control.tune_id = tune_control_s::TUNE_ID_NOTIFY_NEGATIVE;
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+	tune_control.tune_id = tune_control_s::TUNE_ID_TAKEOFF_ERROR;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_MAX;
 	tune_control.timestamp = hrt_absolute_time();
 	_tune_control.publish(tune_control);
 
 }
 
-void AutogyroTakeoff::play_final_tone()
+void AutogyroTakeoff::play_release_tone()
 {
 	tune_control_s tune_control{};
-	tune_control.tune_id = tune_control_s::TUNE_ID_NOTIFY_POSITIVE;
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+	tune_control.tune_id = tune_control_s::TUNE_ID_TAKEOFF_RELEASE;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_MAX;
 	tune_control.timestamp = hrt_absolute_time();
 	_tune_control.publish(tune_control);
 

@@ -81,11 +81,11 @@ enum AutogyroTakeoffState {
 };
 
 enum AutogyroTakeoffType {
-	WOPREROT_PLATFORM = 0,
-	WOPREROT_RUNWAY = 1,
-	ELPREROT_PLATFORM = 2,
-	ELPREROT_RUNWAY = 3,
-	FG_SITL = 10
+	WOPREROT_PLATFORM = 0, // platform without prerotator
+	WOPREROT_RUNWAY = 1,   // Without prerotator on runway
+	ELPREROT_PLATFORM = 2, // Moving platform wint powered prerotator
+	ELPREROT_RUNWAY = 3,   // From runway with powered prerotator
+	FG_SITL = 10           // FlightGear SITL
 };
 
 class __EXPORT AutogyroTakeoff : public ModuleParams
@@ -125,9 +125,9 @@ public:
 	void reset();
 
 
-	void play_happy_tone();
-	void play_sad_tone();
-	void play_final_tone();
+	void play_next_tone();
+	void play_release_tone();
+	void play_error_tone();
 
 private:
 	/** state variables **/

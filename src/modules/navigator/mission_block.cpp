@@ -225,6 +225,7 @@ MissionBlock::is_mission_item_reached()
 				if (dist >= 0.0f && dist_xy <= (_navigator->get_acceptance_radius() + fabsf(_mission_item.loiter_radius))
 				    && dist_z <= _navigator->get_default_altitude_acceptance_radius()) {
 
+                    PX4_WARN("PREPINAM DO LOITER");
 					curr_sp->alt = mission_item_altitude_amsl;
 					curr_sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					_navigator->set_position_setpoint_triplet_updated();

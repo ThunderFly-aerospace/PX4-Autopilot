@@ -730,6 +730,7 @@ FixedwingPositionControl::getManualHeightRateSetpoint()
 bool
 FixedwingPositionControl::in_takeoff_situation()
 {
+
 	// a VTOL does not need special takeoff handling
 	if (_vehicle_status.is_vtol) {
 		return false;
@@ -737,14 +738,12 @@ FixedwingPositionControl::in_takeoff_situation()
 
 	// in air for < 10s
 
-	PX4_INFO("in_tkf: %d %d", (bool)(_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get()),
-		 (bool) _autogyro_takeoff.climbout());
-	return (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get())
-	       && (_autogyro_takeoff.climbout());
-	//&& (!_autogyro_takeoff.isInitialized() || _autogyro_takeoff.climbout());
-	//return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
-	//   && (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get())
-	//   //&& (!_autogyro_takeoff.isInitialized() || _autogyro_takeoff.climbout());
+//TF	PX4_INFO("in_tkf: %d %d", (bool)(_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get()),
+//		 (bool) _autogyro_takeoff.climbout());
+
+	return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
+	   && (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get())
+	   && (!_autogyro_takeoff.isInitialized() || _autogyro_takeoff.climbout());
 }
 
 void
@@ -1484,7 +1483,7 @@ void
 FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	PX4_INFO("Control tf");
+//TF	PX4_INFO("Control tf");
 	/* current waypoint (the one currently heading for) */
 	Vector2d curr_wp(pos_sp_curr.lat, pos_sp_curr.lon);
 	Vector2d prev_wp{0, 0}; /* previous waypoint */
@@ -1530,7 +1529,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		// update autogyro takeoff helper
 		_autogyro_takeoff.update(now, _airspeed, _rpm_frequency, _current_altitude - _takeoff_ground_alt,
 					 _current_latitude, _current_longitude, &_mavlink_log_pub);
-		PX4_INFO("AG_TF - state %d", _autogyro_takeoff.getState());
+//TF		PX4_INFO("AG_TF - state %d", _autogyro_takeoff.getState());
 
 		/*
 		 * Update navigation: _autogyro_takeoff returns the start WP according to mode and phase.

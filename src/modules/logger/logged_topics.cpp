@@ -45,6 +45,9 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	add_topic("camera_capture");
+	add_topic("autogyro_takeoff_status");
+
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_0", 50);

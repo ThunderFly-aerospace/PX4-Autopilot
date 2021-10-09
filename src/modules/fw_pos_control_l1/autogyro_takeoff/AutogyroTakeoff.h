@@ -56,6 +56,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/autogyro_takeoff_status.h>
 #include <uORB/topics/tune_control.h>
+#include <uORB/topics/camera_capture.h>
 
 
 namespace autogyrotakeoff
@@ -132,15 +133,21 @@ public:
 private:
 	/** state variables **/
 	AutogyroTakeoffState _state{PRE_TAKEOFF_PREROTATE_START};
+	AutogyroTakeoffState _state_last{PRE_TAKEOFF_PREROTATE_START};
 	bool _initialized{false};
 	hrt_abstime _initialized_time{0};
 	hrt_abstime _time_in_state{0};
+	hrt_abstime _last_sent_release_status{0};
 	float _init_yaw{0.f};
 	bool _climbout{false};
 	matrix::Vector2d _start_wp;
 
 	uORB::Publication<tune_control_s> _tune_control{ORB_ID(tune_control)};
 	uORB::Publication<autogyro_takeoff_status_s> _autogyro_takeoff_status_pub{ORB_ID(autogyro_takeoff_status)};
+
+	// TODO: templorary sollution. Should be replaced with custom message and custom mavlink message
+	// Used to inform launch platform to release drone from lock
+	uORB::Publication<camera_capture_s>	_takeoff_informations_pub{ORB_ID(camera_capture)};
 
 	DEFINE_PARAMETERS(
 

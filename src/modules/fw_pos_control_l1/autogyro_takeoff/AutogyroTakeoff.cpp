@@ -73,6 +73,7 @@ void AutogyroTakeoff::init(const hrt_abstime &now, float yaw, double current_lat
 	_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START;
 	_initialized_time = now;
 	_time_in_state = now;
+	_last_sent_release_status = now;
 	_climbout = true; // this is true until climbout is finished
 	_start_wp(0) = current_lat;
 	_start_wp(1) = current_lon;
@@ -82,15 +83,19 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			     double current_lat, double current_lon, orb_advert_t *mavlink_log_pub)
 {
 
+	_climbout = true;
+	autogyro_takeoff_status_s autogyro_takeoff_status = {};
+
+	camera_capture_s takeoff_information{};
+	takeoff_information.timestamp = now;
+	takeoff_information.result = 0;
+
+	autogyro_takeoff_status.rpm = false;
+
+
 //TF	PX4_INFO("State: %d", _state);
 //TF	PX4_INFO("RPM: %f", (double) rotor_rpm);
 
-	autogyro_takeoff_status_s autogyro_takeoff_status = {};
-	autogyro_takeoff_status.time_in_state = _time_in_state - now;
-	autogyro_takeoff_status.state = (int) _state;
-	_autogyro_takeoff_status_pub.publish(autogyro_takeoff_status);
-
-	_climbout = true;
 
 	// if (alt_agl > _param_fw_clmbout_diff.get && airspeed > _param_fw_airspd_min.get()) {
 	//     _state = AutogyroTakeoffState::FLY;
@@ -121,6 +126,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 		PX4_INFO("#Takeoff: rpm %f", (double) rotor_rpm);
 
 		if (rotor_rpm > _param_ag_prerotator_minimal_rpm.get()) {
+			autogyro_takeoff_status.rpm = true;
 			if (_param_ag_prerotator_type.get() == 2) { // Eletronic prerotator controlled from autopilot
 				if (doPrerotate()) {
 					play_next_tone();
@@ -154,6 +160,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 
 		//TODO: Zde se rozhodovat podle typu prerotatoru. Pokud je ovladany z autopilota, zjisti jeho stav ze zpravy
 		if (rotor_rpm > _param_ag_prerotator_target_rpm.get()) {
+			autogyro_takeoff_status.rpm = true;
 			_state = AutogyroTakeoffState::PRE_TAKEOFF_DONE;
 			_time_in_state = now;
 			play_next_tone();
@@ -174,6 +181,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 
 			// check minimal rotor RPM again
 			if (rotor_rpm < _param_ag_prerotator_target_rpm.get() and rotor_rpm < _param_ag_rotor_flight_rpm.get()) {
+				autogyro_takeoff_status.rpm = true;
 				ready_for_release = false;
 				_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 				_time_in_state = now;
@@ -217,6 +225,9 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			// Wait for ACK from platform
 			PX4_INFO("!!!!!!!!!!!!!!!!!!!!!!  RELEASE, agl: %f", (double) alt_agl);
 			play_release_tone();
+			autogyro_takeoff_status.rpm = true;
+			takeoff_information.result = 1;
+
 
 			if (alt_agl > _param_rwto_nav_alt.get()) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
@@ -243,6 +254,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	case AutogyroTakeoffState::TAKEOFF_CLIMBOUT:
 		//_climbout = false;
 		PX4_INFO("ALT_AGL... (%d) %f", (int) alt_agl > _param_fw_clmbout_diff.get(), (double) alt_agl);
+		autogyro_takeoff_status.rpm = true;
 
 		if (alt_agl > _param_fw_clmbout_diff.get()) {
 			_climbout = false;
@@ -260,6 +272,28 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	default:
 		break;
 	}
+
+
+
+	autogyro_takeoff_status.time_in_state = hrt_elapsed_time(&_time_in_state);
+	autogyro_takeoff_status.state = (int) _state;
+	autogyro_takeoff_status.climbout = _climbout;
+	_autogyro_takeoff_status_pub.publish(autogyro_takeoff_status);
+
+	if (hrt_elapsed_time(&_last_sent_release_status) > 1_s/3 || _state != _state_last){
+		_last_sent_release_status = now;
+		// takeoff_information.timestamp // fillet at beginning of loop
+		takeoff_information.timestamp_utc = hrt_elapsed_time(&_time_in_state);
+		takeoff_information.seq = _state;
+		takeoff_information.alt = alt_agl;
+		takeoff_information.lat = rotor_rpm;
+		takeoff_information.lon = airspeed;
+		takeoff_information.ground_distance = _climbout;
+
+		_takeoff_informations_pub.publish(takeoff_information);
+	}
+
+	_state_last = _state;
 }
 
 /*

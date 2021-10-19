@@ -112,6 +112,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	*/
 	case AutogyroTakeoffState::TAKEOFF_ERROR:
 		PX4_INFO("ERR STATE");
+		mavlink_log_info(mavlink_log_pub, "#Takeoff: Error state");
 		break;
 
 
@@ -184,6 +185,8 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				autogyro_takeoff_status.rpm = true;
 				ready_for_release = false;
 				_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
+
+				mavlink_log_info(mavlink_log_pub, "RPM decreased.");
 				_time_in_state = now;
 			}
 
@@ -205,7 +208,6 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				play_next_tone();
 
 				//doRelease();
-
 			}
 
 		}
@@ -223,7 +225,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	*/
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
 			// Wait for ACK from platform
-			PX4_INFO("!!!!!!!!!!!!!!!!!!!!!!  RELEASE, agl: %f", (double) alt_agl);
+			PX4_INFO("RELEASE, agl: %f", (double) alt_agl);
 			play_release_tone();
 			autogyro_takeoff_status.rpm = true;
 			takeoff_information.result = 1;

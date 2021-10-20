@@ -92,7 +92,7 @@ PARAM_DEFINE_FLOAT(AG_ROTOR_RPM, 1000.0);
  * Type of prerotator
  *
  * @group Autogyro
- * @value 0 Without prerotator; Prerotation is done with external forward movement
+ * @value 0 Without prerotator; Prerotation is done with external forward movement (moving platform, winch)
  * @value 1 Without prerotator; On runway
  * @value 2 With electronic prerotator controlled from autopilot, takeoff from moving platform
  * @value 3 With electtronic prerotator controlled from autopilot, takoff from runway

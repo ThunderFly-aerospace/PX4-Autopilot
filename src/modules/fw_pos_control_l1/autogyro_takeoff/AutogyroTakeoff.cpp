@@ -205,6 +205,8 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				_time_in_state = now;
 				// TODO: pripravit funkci do release
 				mavlink_log_info(mavlink_log_pub, "Takeoff, Please release.");
+				takeoff_information.result = 1;
+
 				play_next_tone();
 
 				//doRelease();
@@ -229,7 +231,6 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			play_release_tone();
 			autogyro_takeoff_status.rpm = true;
 			takeoff_information.result = 1;
-
 
 			if (alt_agl > _param_rwto_nav_alt.get()) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
@@ -419,15 +420,27 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE: {
 			// In case of SITL or prerotating by own movement
-			float throttlea = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
-			return math::min(throttlea, _param_rwto_max_thr.get());
+			if (_param_ag_prerotator_type.get() == 0){
+				float throttlea = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
+				return math::min(throttlea, _param_rwto_max_thr.get());
+			}else{
+				return 0;
+			}
 		}
 
 	// pak presunout do 0
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
-			float throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
-			// pro SITL testovani
-			throttle = _param_rwto_max_thr.get();
+
+			//throttle = _param_rwto_max_thr.get();
+			float throttle = 0;
+
+			if (_param_ag_prerotator_type.get() == 1){
+				throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
+				throttle = math::min(throttle, _param_rwto_max_thr.get());
+			}else{
+				// pro SITL testovani
+				throttle = _param_rwto_max_thr.get();
+			}
 			return math::min(throttle, _param_rwto_max_thr.get());
 		}
 

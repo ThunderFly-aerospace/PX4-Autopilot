@@ -139,12 +139,10 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				play_next_tone();
 				_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 				_time_in_state = now;
-				//TODO: Play sound
 			}
 
 			mavlink_log_info(mavlink_log_pub, "#Takeoff: minimal RPM for prerotator reached");
 		}
-
 		break;
 
 
@@ -157,7 +155,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    PROCESS: increase rotor RPM to flight RPM
 	    OUT: rotor in flight state
 	*/
-	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:  // 0
+	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:  // 1
 
 		//TODO: Zde se rozhodovat podle typu prerotatoru. Pokud je ovladany z autopilota, zjisti jeho stav ze zpravy
 		if (rotor_rpm > _param_ag_prerotator_target_rpm.get()) {
@@ -177,7 +175,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    IN: rotor prepared;
 	    OUT: rotor prepared; minimal airspeed; motor max power,
 	*/
-	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {     // 1
+	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {     // 2
 			bool ready_for_release = true;
 
 			// check minimal rotor RPM again
@@ -229,6 +227,10 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			// Wait for ACK from platform
 			PX4_INFO("RELEASE, agl: %f", (double) alt_agl);
 			play_release_tone();
+
+            //TODO: prikaz k odpojeni je potreba poslat az po plnem roztoceni motoru. Tedy az co probehne rampup.
+            // To lze zjistit napriklad z _time_in_state hodnoty.
+
 			autogyro_takeoff_status.rpm = true;
 			takeoff_information.result = 1;
 
@@ -270,6 +272,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 		break;
 
 	case AutogyroTakeoffState::FLY:
+		_climbout = false;
 		break;
 
 	default:
@@ -418,7 +421,8 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START:
 		return 0;
 
-	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE: {
+	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
+    case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
 			// In case of SITL or prerotating by own movement
 			if (_param_ag_prerotator_type.get() == 0){
 				float throttlea = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
@@ -445,14 +449,13 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 		}
 
 
-	case AutogyroTakeoffState::PRE_TAKEOFF_DONE:            // pak presunout do 0
-		//case AutogyroTakeoffState::TAKEOFF_CLIMBOUT:
-		//case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
-		return _param_rwto_max_thr.get();
+	//case AutogyroTakeoffState::PRE_TAKEOFF_DONE:            // pak presunout do 0
+	//	//case AutogyroTakeoffState::TAKEOFF_CLIMBOUT:
+	//	//case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
+	//	return _param_rwto_max_thr.get();
 
 	// TAKEOFF_CLIMBOUT a FLY
 	default:
-//		PX4_INFO("CLIMBOUT....");
 		return tecsThrottle;
 	}
 }

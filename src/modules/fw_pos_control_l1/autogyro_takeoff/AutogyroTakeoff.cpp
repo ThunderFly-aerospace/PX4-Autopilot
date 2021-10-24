@@ -184,7 +184,8 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			if (rotor_rpm < _param_ag_prerotator_target_rpm.get() and rotor_rpm < _param_ag_rotor_flight_rpm.get()) {
 				autogyro_takeoff_status.rpm = true;
 				ready_for_release = false;
-				_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
+				// Zde je potreba aplikovat nejakou hysterezi
+				//_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 
 				mavlink_log_info(mavlink_log_pub, "RPM decreased.");
 				_time_in_state = now;

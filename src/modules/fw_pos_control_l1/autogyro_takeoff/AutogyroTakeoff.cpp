@@ -128,6 +128,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 
 		if (rotor_rpm > _param_ag_prerotator_minimal_rpm.get()) {
 			autogyro_takeoff_status.rpm = true;
+
 			if (_param_ag_prerotator_type.get() == 2) { // Eletronic prerotator controlled from autopilot
 				if (doPrerotate()) {
 					play_next_tone();
@@ -143,6 +144,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 
 			mavlink_log_info(mavlink_log_pub, "#Takeoff: minimal RPM for prerotator reached");
 		}
+
 		break;
 
 
@@ -189,14 +191,9 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			}
 
 			// check minimal airspeed
-			if (airspeed < _param_fw_airspd_trim.get()) {
+			if (airspeed < (_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) {
 				ready_for_release = false;
 			}
-
-			// Waiting to get full throttle
-			// if (hrt_elapsed_time(&_time_in_state) < 3_s){
-			//     ready_for_release = false;
-			// }
 
 			if (ready_for_release) {
 				_state = AutogyroTakeoffState::TAKEOFF_RELEASE;
@@ -228,11 +225,13 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			PX4_INFO("RELEASE, agl: %f", (double) alt_agl);
 			play_release_tone();
 
-            //TODO: prikaz k odpojeni je potreba poslat az po plnem roztoceni motoru. Tedy az co probehne rampup.
-            // To lze zjistit napriklad z _time_in_state hodnoty.
+			// Waiting to get full throttle
+			if (hrt_elapsed_time(&_time_in_state) < (_param_rwto_ramp_time.get() * 1_s)) {
+				// Send release CMD
+				takeoff_information.result = 1;
+			}
 
 			autogyro_takeoff_status.rpm = true;
-			takeoff_information.result = 1;
 
 			if (alt_agl > _param_rwto_nav_alt.get()) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
@@ -240,12 +239,10 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				play_next_tone();
 				_time_in_state = now;
 
-
 				if (_param_rwto_hdg.get() == 0) {
 					_start_wp(0) = current_lat;
 					_start_wp(1) = current_lon;
 				}
-
 			}
 		}
 		break;
@@ -286,7 +283,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	autogyro_takeoff_status.climbout = _climbout;
 	_autogyro_takeoff_status_pub.publish(autogyro_takeoff_status);
 
-	if (hrt_elapsed_time(&_last_sent_release_status) > 1_s/3 || _state != _state_last){
+	if (hrt_elapsed_time(&_last_sent_release_status) > 1_s / 3 || _state != _state_last) {
 		_last_sent_release_status = now;
 		// takeoff_information.timestamp // fillet at beginning of loop
 		takeoff_information.timestamp_utc = hrt_elapsed_time(&_time_in_state);
@@ -323,6 +320,19 @@ bool AutogyroTakeoff::doPrerotate()
 	return true;
 }
 
+float AutogyroTakeoff::getRequestedAirspeed()
+{
+	switch (_state) {
+	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START:
+	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
+	case AutogyroTakeoffState::PRE_TAKEOFF_DONE:
+		return _param_fw_airspd_min.get() * _param_rwto_airspd_scl.get();
+
+	default:
+		return _param_fw_airspd_trim.get();
+	}
+}
+
 /*
  * Returns true as long as we're below navigation altitude
  */
@@ -352,7 +362,7 @@ float AutogyroTakeoff::getPitch(float tecsPitch)
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:   // 1 maximal pitch, //TODO: PRE_TAKEOFF_PREROTATE SLEW with pitch
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: // 2
-		return 0.5;
+		return math::radians(_param_rwto_max_pitch.get());
 
 	//case AutogyroTakeoffState::TAKEOFF_RELEASE:             // 3 TECS limited
 	//case AutogyroTakeoffState::TAKEOFF_CLIMBOUT:             // 4 TECS limited
@@ -422,12 +432,13 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 		return 0;
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
-    case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
+	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
 			// In case of SITL or prerotating by own movement
-			if (_param_ag_prerotator_type.get() == 0){
+			if (_param_ag_prerotator_type.get() == 0) {
 				float throttlea = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
 				return math::min(throttlea, _param_rwto_max_thr.get());
-			}else{
+
+			} else {
 				return 0;
 			}
 		}
@@ -438,13 +449,15 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 			//throttle = _param_rwto_max_thr.get();
 			float throttle = 0;
 
-			if (_param_ag_prerotator_type.get() == 1){
+			if (_param_ag_prerotator_type.get() == 1) {
 				throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
 				throttle = math::min(throttle, _param_rwto_max_thr.get());
-			}else{
+
+			} else {
 				// pro SITL testovani
 				throttle = _param_rwto_max_thr.get();
 			}
+
 			return math::min(throttle, _param_rwto_max_thr.get());
 		}
 

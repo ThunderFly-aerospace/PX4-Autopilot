@@ -108,7 +108,7 @@ public:
 
 	//	bool autogyroTakeoffEnabled() { return _param_ag_tkoff.get(); }
 	bool autogyroTakeoffEnabled() { return _param_ag_tkoff.get(); }
-	float getMinAirspeedScaling() { return _param_rwto_airspd_scl.get(); }
+	float getRequestedAirspeed();
 	float getInitYaw() { return _init_yaw; }
 
 	bool controlYaw();

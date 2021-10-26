@@ -294,6 +294,11 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 		takeoff_information.lon = airspeed;
 		takeoff_information.ground_distance = _climbout;
 
+		takeoff_information.q[0] = alt_agl;
+		takeoff_information.q[1] = rotor_rpm;
+		takeoff_information.q[2] = airspeed;
+		takeoff_information.q[3] = _state;
+
 		_takeoff_informations_pub.publish(takeoff_information);
 	}
 
@@ -435,7 +440,7 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
 			// In case of SITL or prerotating by own movement
-			if (_param_ag_prerotator_type.get() == 0) {
+			if (_param_ag_prerotator_type.get() == 1) {
 				float throttlea = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
 				return math::min(throttlea, _param_rwto_max_thr.get());
 
@@ -450,7 +455,7 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 			//throttle = _param_rwto_max_thr.get();
 			float throttle = 0;
 
-			if (_param_ag_prerotator_type.get() == 1) {
+			if (_param_ag_prerotator_type.get() == 0) {
 				throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
 				throttle = math::min(throttle, _param_rwto_max_thr.get());
 

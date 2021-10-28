@@ -343,7 +343,6 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 	}
 }
 
-
 void
 FixedwingPositionControl::rpm_poll()
 {
@@ -943,7 +942,7 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	/* Copy thrust output for publication, handle special cases */
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && // launchdetector only available in auto
 	    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-	    !_runway_takeoff.runwayTakeoffEnabled()) {
+	    !_runway_takeoff.runwayTakeoffEnabled() && !_autogyro_takeoff.autogyroTakeoffEnabled()) {
 
 		/* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons.
@@ -955,7 +954,12 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 
 		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
 
-	} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
+		   _autogyro_takeoff.autogyroTakeoffEnabled()) {
+
+		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(now, min(get_tecs_thrust(), throttle_max));
+
+	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 
 		_att_sp.thrust_body[0] = 0.0f;
 
@@ -2499,7 +2503,7 @@ FixedwingPositionControl::reset_takeoff_state(bool force)
 	if (!_control_mode.flag_armed || (_was_in_air && _landed) || force) {
 
 		_runway_takeoff.reset();
-		// _autogyro_takeoff.reset();
+		_autogyro_takeoff.reset();
 		_launchDetector.reset();
 		_launch_detection_state = LAUNCHDETECTION_RES_NONE;
 		_launch_detection_notify = 0;

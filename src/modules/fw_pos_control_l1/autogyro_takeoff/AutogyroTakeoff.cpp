@@ -188,13 +188,15 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				// Zde je potreba aplikovat nejakou hysterezi
 				//_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 
-				mavlink_log_info(mavlink_log_pub, "RPM decreased., %f z %f", (double) rotor_rpm, (double) _param_ag_rotor_flight_rpm.get());
+				mavlink_log_info(mavlink_log_pub, "RPM decreased., %f z %f", (double) rotor_rpm,
+						 (double) _param_ag_rotor_flight_rpm.get());
 				_time_in_state = now;
 			}
 
 			// check minimal airspeed
 			if (airspeed < (_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) {
-				mavlink_log_info(mavlink_log_pub, "Numam airspd, %f z %f", (double) airspeed, (double) (_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) ;
+				mavlink_log_info(mavlink_log_pub, "Numam airspd, %f z %f", (double) airspeed,
+						 (double)(_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) ;
 
 				ready_for_release = false;
 			}
@@ -432,13 +434,15 @@ float AutogyroTakeoff::getYaw(float navigatorYaw)
  */
 float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 {
-//	PX4_INFO("GET THROTTLE, %d", (int) _state);
+	PX4_INFO("GET THROTTLE, %d", (int) _state);
 
 	switch (_state) {
 
 	case AutogyroTakeoffState::TAKEOFF_ERROR:
-	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START:
 		return 0;
+
+	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START: // tento bod presunout k 0
+		return _param_rwto_max_thr.get();
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {

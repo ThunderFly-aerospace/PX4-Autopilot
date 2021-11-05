@@ -957,7 +957,7 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _autogyro_takeoff.autogyroTakeoffEnabled()) {
 
-		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(now, min(get_tecs_thrust(), throttle_max));
+		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(now, min(get_tecs_thrust(), _param_fw_thr_max.get()));
 
 	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 
@@ -1492,12 +1492,15 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			mavlink_log_info(&_mavlink_log_pub, "Autogyro takeoff started");
 		}
 
+		if (_autogyro_takeoff.resetAltTakeoff()) {
+			_takeoff_ground_alt = _current_altitude;
+		}
+
 		//float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
 
 		// update autogyro takeoff helper
 		_autogyro_takeoff.update(now, _airspeed, _rpm_frequency, _current_altitude - _takeoff_ground_alt,
 					 _current_latitude, _current_longitude, &_mavlink_log_pub);
-//TF		PX4_INFO("AG_TF - state %d", _autogyro_takeoff.getState());
 
 		/*
 		 * Update navigation: _autogyro_takeoff returns the start WP according to mode and phase.

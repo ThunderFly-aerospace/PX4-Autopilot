@@ -118,6 +118,7 @@ public:
 	float getYaw(float navigatorYaw);
 	float getThrottle(const hrt_abstime &now, float tecsThrottle);
 	bool resetIntegrators();
+	bool resetAltTakeoff();
 	float getMinPitch(float climbout_min, float min);
 	float getMaxPitch(float max);
 	// bool setState(int new_state);

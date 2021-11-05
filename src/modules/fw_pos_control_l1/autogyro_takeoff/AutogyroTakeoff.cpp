@@ -442,7 +442,8 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 		return 0;
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START: // tento bod presunout k 0
-		return _param_rwto_max_thr.get();
+		// return _param_rwto_max_thr.get();
+		return 0;
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
@@ -490,6 +491,12 @@ bool AutogyroTakeoff::resetIntegrators()
 {
 	// reset integrators if we're still on runway
 	// return _state < AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
+	return _state < AutogyroTakeoffState::TAKEOFF_RELEASE;
+}
+
+
+bool AutogyroTakeoff::resetAltTakeoff()
+{
 	return _state < AutogyroTakeoffState::TAKEOFF_RELEASE;
 }
 

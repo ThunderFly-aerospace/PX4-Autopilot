@@ -350,8 +350,6 @@ FixedwingPositionControl::rpm_poll()
 		_rpm_sub.copy(&_rpm);
 		_rpm_frequency = _rpm.indicated_frequency_rpm;
 	}
-
-	//PX4_INFO("RPM: %g", (double) _rpm_frequency);
 }
 
 void
@@ -737,12 +735,14 @@ FixedwingPositionControl::in_takeoff_situation()
 
 	// in air for < 10s
 
-//TF	PX4_INFO("in_tkf: %d %d", (bool)(_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get()),
-//		 (bool) _autogyro_takeoff.climbout());
+//TF TODO: Why is there such a constant? Why isn't the runway takeoff controlled by a climbout variable?
+	// return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
+	//        && (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get())
+	//        && (!_autogyro_takeoff.isInitialized() || _autogyro_takeoff.climbout());
 
-	return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
-	       && (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get())
+	return (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get())
 	       && (!_autogyro_takeoff.isInitialized() || _autogyro_takeoff.climbout());
+
 }
 
 void

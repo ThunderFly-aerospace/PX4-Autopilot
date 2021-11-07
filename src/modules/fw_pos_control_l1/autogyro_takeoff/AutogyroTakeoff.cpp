@@ -82,7 +82,6 @@ void AutogyroTakeoff::init(const hrt_abstime &now, float yaw, double current_lat
 void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor_rpm, float alt_agl,
 			     double current_lat, double current_lon, orb_advert_t *mavlink_log_pub)
 {
-
 	_climbout = true;
 	autogyro_takeoff_status_s autogyro_takeoff_status = {};
 
@@ -91,17 +90,6 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	takeoff_information.result = 0;
 
 	autogyro_takeoff_status.rpm = false;
-
-
-//TF	PX4_INFO("State: %d", _state);
-//TF	PX4_INFO("RPM: %f", (double) rotor_rpm);
-
-
-	// if (alt_agl > _param_fw_clmbout_diff.get && airspeed > _param_fw_airspd_min.get()) {
-	//     _state = AutogyroTakeoffState::FLY;
-	//     _time_in_state = now;
-	//     PX4_INFO("FLY!! - SKIP");
-	// }
 
 	switch (_state) {
 	/*
@@ -123,8 +111,6 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    OUT: Minimal rotor RPM
 	*/
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START:
-
-		PX4_INFO("#Takeoff: rpm %f", (double) rotor_rpm);
 
 		if (rotor_rpm > _param_ag_prerotator_minimal_rpm.get()) {
 			autogyro_takeoff_status.rpm = true;
@@ -188,16 +174,13 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				// Zde je potreba aplikovat nejakou hysterezi
 				//_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
 
-				mavlink_log_info(mavlink_log_pub, "RPM decreased., %f z %f", (double) rotor_rpm,
-						 (double) _param_ag_rotor_flight_rpm.get());
+				//mavlink_log_info(mavlink_log_pub, "RPM decreased., %f z %f", (double) rotor_rpm,
+				//		 (double) _param_ag_rotor_flight_rpm.get());
 				_time_in_state = now;
 			}
 
 			// check minimal airspeed
 			if (airspeed < (_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) {
-				mavlink_log_info(mavlink_log_pub, "Numam airspd, %f z %f", (double) airspeed,
-						 (double)(_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) ;
-
 				ready_for_release = false;
 			}
 
@@ -228,7 +211,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	*/
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
 			// Wait for ACK from platform
-			PX4_INFO("RELEASE, agl: %f", (double) alt_agl);
+			//PX4_INFO("RELEASE, agl: %f", (double) alt_agl);
 			play_release_tone();
 
 			// Waiting to get full throttle
@@ -260,15 +243,12 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    OUT: Mission continue
 	*/
 	case AutogyroTakeoffState::TAKEOFF_CLIMBOUT:
-		//_climbout = false;
-		PX4_INFO("ALT_AGL... (%d) %f", (int) alt_agl > _param_fw_clmbout_diff.get(), (double) alt_agl);
 		autogyro_takeoff_status.rpm = true;
 
 		if (alt_agl > _param_fw_clmbout_diff.get()) {
 			_climbout = false;
 			_state = AutogyroTakeoffState::FLY;
 			_time_in_state = now;
-			PX4_INFO("FLY!! ");
 		}
 
 		//_climbout = false;
@@ -361,10 +341,6 @@ bool AutogyroTakeoff::controlYaw()
  */
 float AutogyroTakeoff::getPitch(float tecsPitch)
 {
-	// if (_state <= AutogyroTakeoffState::CLAMPED_TO_RUNWAY) {
-	// 	return math::radians(_param_rwto_psp.get());
-	//
-
 	switch (_state) {
 
 	case AutogyroTakeoffState::TAKEOFF_ERROR:
@@ -434,21 +410,15 @@ float AutogyroTakeoff::getYaw(float navigatorYaw)
  */
 float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 {
-	PX4_INFO("GET THROTTLE, %d", (int) _state);
-
 	switch (_state) {
 
 	case AutogyroTakeoffState::TAKEOFF_ERROR:
-		return 0;
-
-	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START: // tento bod presunout k 0
-		// return _param_rwto_max_thr.get();
+	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START:
 		return 0;
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
-			// In case of SITL or prerotating by own movement
-			if (_param_ag_prerotator_type.get() == 1) {
+			if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
 				float throttlea = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
 				return math::min(throttlea, _param_rwto_max_thr.get());
 
@@ -457,28 +427,25 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 			}
 		}
 
-	// pak presunout do 0
-	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
 
-			//throttle = _param_rwto_max_thr.get();
+	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
 			float throttle = 0;
 
-			if (_param_ag_prerotator_type.get() == 0) {
+			if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
+				throttle = _param_rwto_max_thr.get();
+
+			} else if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_PLATFORM) {
 				throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
 				throttle = math::min(throttle, _param_rwto_max_thr.get());
-
-			} else {
-				// pro SITL testovani
-				throttle = _param_rwto_max_thr.get();
 			}
 
 			return math::min(throttle, _param_rwto_max_thr.get());
 		}
 
 
-	//case AutogyroTakeoffState::PRE_TAKEOFF_DONE:            // pak presunout do 0
-	//	//case AutogyroTakeoffState::TAKEOFF_CLIMBOUT:
-	//	//case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
+	//case AutogyroTakeoffState::PRE_TAKEOFF_DONE:
+	//case AutogyroTakeoffState::TAKEOFF_CLIMBOUT:
+	//case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
 	//	return _param_rwto_max_thr.get();
 
 	// TAKEOFF_CLIMBOUT a FLY
@@ -490,7 +457,6 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 bool AutogyroTakeoff::resetIntegrators()
 {
 	// reset integrators if we're still on runway
-	// return _state < AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
 	return _state < AutogyroTakeoffState::TAKEOFF_RELEASE;
 }
 
@@ -534,14 +500,6 @@ float AutogyroTakeoff::getMaxPitch(float max)
 		return max;
 	}
 }
-
-
-// bool
-// AutogyroTakeoff::setState(int new_state)
-// {
-//     _state = new_state;
-
-// }
 
 
 void AutogyroTakeoff::reset()

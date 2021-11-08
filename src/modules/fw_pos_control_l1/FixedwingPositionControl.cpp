@@ -1342,7 +1342,7 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const floa
 		prev_wp(1) = pos_sp_curr.lon;
 	}
 
-	float airspeed_sp = -1.f;
+	float mission_airspeed = _param_fw_airspd_trim.get();
 
 	if (PX4_ISFINITE(pos_sp_curr.cruising_speed) &&
 	    pos_sp_curr.cruising_speed > FLT_EPSILON) {

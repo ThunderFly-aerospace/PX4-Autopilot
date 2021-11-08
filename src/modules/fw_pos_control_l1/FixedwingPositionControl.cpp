@@ -346,7 +346,7 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 void
 FixedwingPositionControl::rpm_poll()
 {
-	if (_rpm_sub.updated()) {
+	if (_rpm_sub.update(&_rpm)) {
 		_rpm_sub.copy(&_rpm);
 		_rpm_frequency = _rpm.indicated_frequency_rpm;
 	}

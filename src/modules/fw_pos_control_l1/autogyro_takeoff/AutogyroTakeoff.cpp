@@ -44,6 +44,7 @@
 #include "AutogyroTakeoff.h"
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
+#include <lib/geo/geo.h>
 
 #include <uORB/Publication.hpp>
 
@@ -72,8 +73,10 @@ void AutogyroTakeoff::init(const hrt_abstime &now, float yaw, double current_lat
 	_time_in_state = now;
 	_last_sent_release_status = now;
 	_climbout = true; // this is true until climbout is finished
-	_start_wp(0) = current_lat;
-	_start_wp(1) = current_lon;
+	_takeoff_wp(0) = current_lat;
+	_takeoff_wp(1) = current_lon;
+	_initial_wp(0) = current_lat;
+	_initial_wp(1) = current_lon;
 }
 
 void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor_rpm, float alt_agl,
@@ -182,6 +185,8 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			}
 
 			if (ready_for_release) {
+				_init_yaw = get_bearing_to_next_waypoint(_initial_wp(0), _initial_wp(1), current_lat, current_lon);
+
 				_state = AutogyroTakeoffState::TAKEOFF_RELEASE;
 				_time_in_state = now;
 				// TODO: pripravit funkci do release
@@ -207,14 +212,11 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	    OUT: Command for release
 	*/
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
-			// Wait for ACK from platform
-			//PX4_INFO("RELEASE, agl: %f", (double) alt_agl);
-			play_release_tone();
-
 			// Waiting to get full throttle
 			if (hrt_elapsed_time(&_time_in_state) < (_param_rwto_ramp_time.get() * 1_s)) {
 				// Send release CMD
 				takeoff_information.result = 1;
+				play_release_tone();
 			}
 
 			autogyro_takeoff_status.rpm = true;
@@ -225,9 +227,10 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				play_next_tone();
 				_time_in_state = now;
 
+				// set current position as center of loiter
 				if (_param_rwto_hdg.get() == 0) {
-					_start_wp(0) = current_lat;
-					_start_wp(1) = current_lon;
+					_takeoff_wp(0) = current_lat;
+					_takeoff_wp(1) = current_lon;
 				}
 			}
 		}
@@ -416,8 +419,8 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
 			if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
-				float throttlea = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
-				return math::min(throttlea, _param_rwto_max_thr.get());
+				float throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
+				return math::min(throttle, _param_rwto_max_thr.get());
 
 			} else {
 				return 0;

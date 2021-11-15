@@ -119,7 +119,7 @@ public:
 	float getMinPitch(float climbout_min, float min);
 	float getMaxPitch(float max);
 	// bool setState(int new_state);
-	const matrix::Vector2d &getStartWP() const { return _start_wp; };
+	const matrix::Vector2d &getStartWP() const { return _takeoff_wp; };
 
 	void reset();
 
@@ -138,7 +138,9 @@ private:
 	hrt_abstime _last_sent_release_status{0};
 	float _init_yaw{0.f};
 	bool _climbout{false};
-	matrix::Vector2d _start_wp;
+
+	matrix::Vector2d _initial_wp;
+	matrix::Vector2d _takeoff_wp;
 
 	uORB::Publication<tune_control_s> _tune_control{ORB_ID(tune_control)};
 	uORB::Publication<autogyro_takeoff_status_s> _autogyro_takeoff_status_pub{ORB_ID(autogyro_takeoff_status)};

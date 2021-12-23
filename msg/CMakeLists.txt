@@ -47,6 +47,7 @@ set(msg_files
 	actuator_servos_trim.msg
 	actuator_test.msg
 	adc_report.msg
+	airborne_particles.msg
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg

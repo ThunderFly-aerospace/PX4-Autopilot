@@ -1,0 +1,5 @@
+menuconfig DRIVERS_ATMOSPHERIC_QUANTITIES_SPS30
+	bool "SPS30 PM sensor"
+	default n
+	---help---
+		Enable support SPS32 airbone particle sensor

@@ -56,7 +56,7 @@
 #include <px4_platform_common/defines.h>
 #include <drivers/device/i2c.h>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/airborne_particles.h>
+#include <uORB/topics/sensor_airborne_particles.h>
 #include <drivers/drv_hrt.h>
 
 #define SPS30_START_MEASUREMENT     0x0010
@@ -138,6 +138,6 @@ private:
 	int _last_state = sps30_state::INIT;
 	uint32_t _time_in_state = hrt_absolute_time();
 	uint16_t _last_command = 0;
-	uORB::Publication<airborne_particles_s> _airborne_particles_pub{ORB_ID(airborne_particles)};
+	uORB::Publication<sensor_airborne_particles_s> sensor_airborne_particles_pub{ORB_ID(sensor_airborne_particles)};
 
 };

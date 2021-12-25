@@ -105,10 +105,6 @@ int SPS30::read_data(uint16_t command, uint8_t *data_ptr, uint8_t length)
 		*(data_ptr + i * 2 + 1) = raw_data[i * 3 + 1];
 	}
 
-	if (crc_err > 0) {
-		PX4_INFO("Error IN CRC, cmd %x", command);
-	}
-
 	return crc_err;
 }
 
@@ -141,7 +137,7 @@ void SPS30::sensor_compouse_msg(bool send)
 	uint32_t d = 0;
 
 	if (send) {
-		airborne_particles_s msg{};
+		sensor_airborne_particles_s msg{};
 		msg.timestamp = hrt_absolute_time();
 
 		d = ((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | (data[3]));
@@ -177,7 +173,7 @@ void SPS30::sensor_compouse_msg(bool send)
 		measured_values[9] = *(float *)&d;
 		msg.typical_particle_size = *(float *)&d;
 
-		_airborne_particles_pub.publish(msg);
+		sensor_airborne_particles_pub.publish(msg);
 	}
 }
 
@@ -210,11 +206,10 @@ int SPS30::init()
 	}
 
 	init_sensor();
-	_airborne_particles_pub.advertise();
+	sensor_airborne_particles_pub.advertise();
 	ScheduleOnInterval(50000);
 	return PX4_OK;
 }
-
 
 
 int SPS30::init_sensor()

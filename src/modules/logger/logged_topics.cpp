@@ -45,7 +45,6 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
-	add_topic("airborne_particles");
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_0", 50);
@@ -90,6 +89,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_topic("rtl_time_estimate", 1000);
+	add_topic("safety");
+	add_topic("sensor_airborne_particles");
 	add_topic("sensor_combined");
 	add_optional_topic("sensor_correction");
 	add_optional_topic("sensor_gyro_fft", 50);

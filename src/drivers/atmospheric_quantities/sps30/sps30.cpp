@@ -254,7 +254,7 @@ void SPS30::RunImpl()
 			sensor_compouse_msg(1);
 		}
 
-		if ((hrt_absolute_time() - measurement_time) > 3_s) {
+		if ((hrt_absolute_time() - measurement_time) > 3 * 1_s) {
 			_state = sps30_state::ERROR_READOUT;
 			PX4_ERR("I cant get data from SPS30");
 		}

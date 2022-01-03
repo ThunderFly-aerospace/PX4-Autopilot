@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -50,6 +50,7 @@ set(msg_files
 	AirspeedValidated.msg
 	AirspeedWind.msg
 	AutotuneAttitudeControlStatus.msg
+	AutogyroTakeoffStatus.msg
 	BatteryStatus.msg
 	ButtonEvent.msg
 	CameraCapture.msg
@@ -228,7 +229,48 @@ set(msg_files
 	Wind.msg
 	YawEstimatorStatus.msg
 )
+
+if(NOT px4_constrained_flash_build)
+	list(APPEND msg_files
+		debug_array.msg
+		debug_key_value.msg
+		debug_value.msg
+		debug_vect.msg
+	)
+endif()
+
+if(PX4_TESTING)
+	list(APPEND msg_files
+		orb_test.msg
+		orb_test_large.msg
+		orb_test_medium.msg
+	)
+endif()
+
 list(SORT msg_files)
+
+set(deprecated_msgs
+	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
+	)
+
+foreach(msg IN LISTS deprecated_msgs)
+	if(msg IN_LIST msg_files)
+		get_filename_component(msg_we ${msg} NAME_WE)
+		list(APPEND invalid_msgs ${msg_we})
+	endif()
+endforeach()
+if(invalid_msgs)
+	list(LENGTH invalid_msgs invalid_msgs_size)
+	if(${invalid_msgs_size} GREATER 1)
+		foreach(msg IN LISTS invalid_msgs)
+			string(CONCAT invalid_msgs_cs ${invalid_msgs_cs} "'${msg}', ")
+		endforeach()
+		STRING(REGEX REPLACE ", +$" "" invalid_msgs_cs ${invalid_msgs_cs})
+		message(FATAL_ERROR "${invalid_msgs_cs} are listed as deprecated. Please use different names for the messages.")
+	else()
+		message(FATAL_ERROR "'${invalid_msgs}' is listed as deprecated. Please use a different name for the message.")
+	endif()
+endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
 
@@ -247,64 +289,63 @@ endif()
 # headers
 set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)
 set(ucdr_out_path ${PX4_BINARY_DIR}/uORB/ucdr)
-set(msg_source_out_path ${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
+set(msg_source_out_path	${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
 
-set(uorb_headers)
-set(uorb_sources)
+set(uorb_headers ${msg_out_path}/uORBTopics.hpp)
+set(uorb_sources ${msg_source_out_path}/uORBTopics.cpp)
 set(uorb_ucdr_headers)
 foreach(msg_file ${msg_files})
 	get_filename_component(msg ${msg_file} NAME_WE)
-
-	# Pascal case to snake case (MsgFile -> msg_file)
-	string(REGEX REPLACE "(.)([A-Z][a-z]+)" "\\1_\\2" msg "${msg}")
-	string(REGEX REPLACE "([a-z0-9])([A-Z])" "\\1_\\2" msg "${msg}")
-	string(TOLOWER "${msg}" msg)
-
 	list(APPEND uorb_headers ${msg_out_path}/${msg}.h)
 	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
 	list(APPEND uorb_ucdr_headers ${ucdr_out_path}/${msg}.h)
 endforeach()
 
+if (px4_constrained_flash_build)
+	set(added_arguments --constrained-flash)
+endif()
+
 # set parent scope msg_files for other modules to consume (eg topic_listener)
 set(msg_files ${msg_files} PARENT_SCOPE)
 
 # Generate uORB headers
-add_custom_command(
-	OUTPUT
-		${uorb_headers}
-		${msg_out_path}/uORBTopics.hpp
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+add_custom_command(OUTPUT ${uorb_headers}
+	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
 		--headers
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR}
 		-o ${msg_out_path}
-		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
+		-e templates/uorb
+		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
+		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
-		${PX4_SOURCE_DIR}/Tools/msg/templates/uorb/msg.h.em
-		${PX4_SOURCE_DIR}/Tools/msg/templates/uorb/uORBTopics.hpp.em
-		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
-		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_helper.py
+		templates/uorb/msg.h.em
+		templates/uorb/uORBTopics.hpp.em
+		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
 	)
 add_custom_target(uorb_headers DEPENDS ${uorb_headers})
 
-# Generate microcdr headers
-add_custom_command(
-	OUTPUT ${uorb_ucdr_headers}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+add_custom_command(OUTPUT ${uorb_ucdr_headers}
+	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
 		--headers
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR}
 		-o ${ucdr_out_path}
-		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/ucdr
+		-e templates/ucdr
+		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/ucdr_headers
+		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
-		${PX4_SOURCE_DIR}/Tools/msg/templates/ucdr/msg.h.em
-		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
-		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_helper.py
+		templates/ucdr/msg.h.em
+		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic ucdr headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
@@ -312,27 +353,26 @@ add_custom_command(
 add_custom_target(uorb_ucdr_headers DEPENDS ${uorb_ucdr_headers})
 
 # Generate uORB sources
-add_custom_command(
-	OUTPUT
-		${uorb_sources}
-		${msg_source_out_path}/uORBTopics.cpp
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+add_custom_command(OUTPUT ${uorb_sources}
+	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
 		--sources
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR}
 		-o ${msg_source_out_path}
-		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
+		-e templates/uorb
+		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
+		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
-		${PX4_SOURCE_DIR}/Tools/msg/templates/uorb/msg.cpp.em
-		${PX4_SOURCE_DIR}/Tools/msg/templates/uorb/uORBTopics.cpp.em
-		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
-		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_helper.py
+		templates/uorb/msg.cpp.em
+		templates/uorb/uORBTopics.cpp.em
+		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
 	)
 
-add_library(uorb_msgs ${uorb_headers} ${msg_out_path}/uORBTopics.hpp ${uorb_sources} ${msg_source_out_path}/uORBTopics.cpp)
-target_link_libraries(uorb_msgs PRIVATE m)
+add_library(uorb_msgs ${uorb_sources})
 add_dependencies(uorb_msgs prebuild_targets uorb_headers)

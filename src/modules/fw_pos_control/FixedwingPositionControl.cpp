@@ -54,7 +54,8 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_launchDetector(this),
-	_runway_takeoff(this)
+	_runway_takeoff(this),
+	_autogyro_takeoff(this)
 {
 	if (vtol) {
 		_param_handle_airspeed_trans = param_find("VT_ARSP_TRANS");
@@ -338,6 +339,14 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 	}
 }
 
+void
+FixedwingPositionControl::rpm_poll()
+{
+	if (_rpm_sub.update(&_rpm)) {
+		_rpm_sub.copy(&_rpm);
+		_rpm_frequency = _rpm.indicated_frequency_rpm;
+	}
+}
 
 void
 FixedwingPositionControl::vehicle_attitude_poll()
@@ -689,6 +698,17 @@ FixedwingPositionControl::getManualHeightRateSetpoint()
 void
 FixedwingPositionControl::updateManualTakeoffStatus()
 {
+
+//TF CHECK
+	// a VTOL does not need special takeoff handling
+	if (_vehicle_status.is_vtol) {
+		return false;
+	}
+
+	if (_autogyro_takeoff.autogyroTakeoffEnabled()) {
+		return (!_autogyro_takeoff.isInitialized() || _autogyro_takeoff.climbout());
+	}
+//TF CHECK
 	if (!_completed_manual_takeoff) {
 		const bool at_controllable_airspeed = _airspeed > _param_fw_airspd_min.get()
 						      || !_airspeed_valid;
@@ -696,6 +716,11 @@ FixedwingPositionControl::updateManualTakeoffStatus()
 					 && _control_mode.flag_armed;
 		_completed_manual_takeoff = (!_landed && at_controllable_airspeed) || is_hovering;
 	}
+
+	// in air for < 10s
+	return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
+	       && (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get());
+
 }
 
 void
@@ -2434,6 +2459,8 @@ void
 FixedwingPositionControl::reset_takeoff_state()
 {
 	_runway_takeoff.reset();
+
+	_autogyro_takeoff.reset();
 
 	_launchDetector.reset();
 

@@ -50,6 +50,7 @@
 
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
+#include "autogyro_takeoff/AutogyroTakeoff.h"
 
 #include <float.h>
 
@@ -79,8 +80,10 @@
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/rpm.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -98,6 +101,7 @@
 
 using namespace launchdetection;
 using namespace runwaytakeoff;
+using namespace autogyrotakeoff;
 using namespace time_literals;
 
 using matrix::Vector2d;
@@ -170,6 +174,7 @@ private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -192,6 +197,9 @@ private:
 	vehicle_local_position_s _local_pos {};	// vehicle local position
 	vehicle_status_s _vehicle_status {}; // vehicle status
 
+	rpm_s _rpm{};
+
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	double _current_latitude{0};
 	double _current_longitude{0};
 	float _current_altitude{0.f};
@@ -262,6 +270,7 @@ private:
 	hrt_abstime _launch_detection_notify{0};
 
 	RunwayTakeoff _runway_takeoff;
+	AutogyroTakeoff _autogyro_takeoff;
 
 	// true if the last iteration was in manual mode (used to determine when a reset is needed)
 	bool _last_manual{false};
@@ -275,6 +284,7 @@ private:
 
 	float _airspeed{0.0f};
 	float _eas2tas{1.0f};
+	float _rpm_frequency{0.0f};
 
 	/* wind estimates */
 
@@ -285,6 +295,9 @@ private:
 
 	hrt_abstime _time_wind_last_received{0}; // [us]
 
+	float _groundspeed_undershoot{0.0f};			///< ground speed error to min. speed in m/s
+
+	float _roll{0.0f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
@@ -358,14 +371,15 @@ private:
 	int parameters_update();
 
 	// Update subscriptions
-	void airspeed_poll();
-	void control_update();
-	void manual_control_setpoint_poll();
-	void vehicle_attitude_poll();
-	void vehicle_command_poll();
-	void vehicle_control_mode_poll();
-	void vehicle_status_poll();
-	void wind_poll();
+	void		airspeed_poll();
+	void		control_update();
+	void 		manual_control_setpoint_poll();
+	void		rpm_poll();
+	void		vehicle_attitude_poll();
+	void		vehicle_command_poll();
+	void		vehicle_control_mode_poll();
+	void		vehicle_status_poll();
+	void        wind_poll();
 
 	void status_publish();
 	void landing_status_publish();

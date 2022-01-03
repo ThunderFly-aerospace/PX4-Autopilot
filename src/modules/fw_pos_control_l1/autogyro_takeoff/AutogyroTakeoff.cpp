@@ -55,12 +55,7 @@ namespace autogyrotakeoff
 {
 
 AutogyroTakeoff::AutogyroTakeoff(ModuleParams *parent) :
-	ModuleParams(parent),
-	_state(),
-	_initialized(false),
-	_initialized_time(0),
-	_init_yaw(0),
-	_climbout(false)
+	ModuleParams(parent)
 {
 }
 

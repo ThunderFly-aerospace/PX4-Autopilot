@@ -343,7 +343,7 @@ FixedwingPositionControl::rpm_poll()
 {
 	if (_rpm_sub.update(&_rpm)) {
 		_rpm_sub.copy(&_rpm);
-		_rpm_frequency = _rpm.indicated_frequency_rpm;
+		_rotor_rpm = _rpm.indicated_frequency_rpm;
 	}
 }
 
@@ -958,7 +958,16 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	/* Copy thrust output for publication, handle special cases */
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && // launchdetector only available in auto
 	    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-	    !_runway_takeoff.runwayTakeoffEnabled() && !_autogyro_takeoff.autogyroTakeoffEnabled()) {
+	    !_runway_takeoff.runwayTakeoffEnabled()) {
+
+		/* making sure again that the correct thrust is used,
+		 * without depending on library calls for safety reasons.
+		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
+		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
+
+	} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && // launchdetector only available in auto
+		   _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
+		   !_autogyro_takeoff.autogyroTakeoffEnabled()) {
 
 		/* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons.
@@ -1444,7 +1453,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		//float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
 
 		// update autogyro takeoff helper
-		_autogyro_takeoff.update(now, _airspeed, _rpm_frequency, _current_altitude - _takeoff_ground_alt,
+		_autogyro_takeoff.update(now, _airspeed, _rotor_rpm, _current_altitude - _takeoff_ground_alt,
 					 _current_latitude, _current_longitude, &_mavlink_log_pub);
 
 		/*

@@ -284,7 +284,7 @@ private:
 
 	float _airspeed{0.0f};
 	float _eas2tas{1.0f};
-	float _rpm_frequency{0.0f};
+	float _rotor_rpm{0.0f};
 
 	/* wind estimates */
 

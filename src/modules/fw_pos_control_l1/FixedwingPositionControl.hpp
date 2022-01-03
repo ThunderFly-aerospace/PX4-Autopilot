@@ -376,7 +376,8 @@ private:
 
 	bool _airspeed_valid{false};
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};
-	float _rpm_frequency{0.0f};
+	float _rotor_rpm{0.0f};
+
 
 
 	// [us] last time airspeed was received. used to detect timeouts.

@@ -245,7 +245,7 @@ private:
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
 	float _airspeed{0.0f};
 	float _eas2tas{1.0f};
-	float _rpm_frequency{0.0f};
+	float _rotor_rpm{0.0f};
 
 	/* wind estimates */
 	Vector2f _wind_vel{0.0f, 0.0f}; ///< wind velocity vector [m/s]

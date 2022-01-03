@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(launchdetection)
-add_subdirectory(runway_takeoff)
-add_subdirectory(autogyro_takeoff)
-
-px4_add_module(
-	MODULE modules__fw_pos_control_l1
-	MAIN fw_pos_control_l1
-	SRCS
-		FixedwingPositionControl.cpp
-		FixedwingPositionControl.hpp
-	DEPENDS
-		l1
-		launchdetection
-    npfg
-		runway_takeoff
-		autogyro_takeoff
-		SlewRate
-		tecs
-		motion_planning
-	)
+px4_add_library(autogyro_takeoff
+	AutogyroTakeoff.cpp
+)

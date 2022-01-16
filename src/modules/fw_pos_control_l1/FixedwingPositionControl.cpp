@@ -958,16 +958,7 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	/* Copy thrust output for publication, handle special cases */
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && // launchdetector only available in auto
 	    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-	    !_runway_takeoff.runwayTakeoffEnabled()) {
-
-		/* making sure again that the correct thrust is used,
-		 * without depending on library calls for safety reasons.
-		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
-
-	} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && // launchdetector only available in auto
-		   _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-		   !_autogyro_takeoff.autogyroTakeoffEnabled()) {
+	    !_runway_takeoff.runwayTakeoffEnabled() && !_autogyro_takeoff.autogyroTakeoffEnabled()) {
 
 		/* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons.
@@ -1456,17 +1447,33 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_autogyro_takeoff.update(now, _airspeed, _rotor_rpm, _current_altitude - _takeoff_ground_alt,
 					 _current_latitude, _current_longitude, &_mavlink_log_pub);
 
+		float target_airspeed = get_auto_airspeed_setpoint(now,
+					_runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get(), ground_speed,
+					dt);
 		/*
 		 * Update navigation: _autogyro_takeoff returns the start WP according to mode and phase.
 		 * If we use the navigator heading or not is decided later.
 		 */
-		_l1_control.navigate_waypoints(_autogyro_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed);
+
+		if (_param_fw_use_npfg.get()) {
+			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+			_npfg.navigateWaypoints(_autogyro_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed, _wind_vel);
+			_att_sp.roll_body = _autogyro_takeoff.getRoll(_npfg.getRollSetpoint());
+			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+
+		} else {
+			_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed);
+			_att_sp.roll_body = _autogyro_takeoff.getRoll(_l1_control.get_roll_setpoint());
+		}
+
+		_att_sp.yaw_body = _autogyro_takeoff.getYaw(_yaw);
 
 		// update tecs
 		const float takeoff_pitch_max_deg = _autogyro_takeoff.getMaxPitch(_param_fw_p_lim_max.get());
 
 		tecs_update_pitch_throttle(now, pos_sp_curr.alt,
-					   calculate_target_airspeed(_autogyro_takeoff.getRequestedAirspeed(), ground_speed),
+					   target_airspeed,
 					   radians(_param_fw_p_lim_min.get()),
 					   radians(takeoff_pitch_max_deg),
 					   _param_fw_thr_min.get(),
@@ -1477,8 +1484,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					   tecs_status_s::TECS_MODE_TAKEOFF);
 
 		// assign values
-		_att_sp.roll_body = _autogyro_takeoff.getRoll(_l1_control.get_roll_setpoint());
-		_att_sp.yaw_body = _autogyro_takeoff.getYaw(_l1_control.nav_bearing());
 		_att_sp.fw_control_yaw = _autogyro_takeoff.controlYaw();
 		_att_sp.pitch_body = _autogyro_takeoff.getPitch(get_tecs_pitch());
 

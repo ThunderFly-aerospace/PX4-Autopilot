@@ -51,7 +51,7 @@
 #include <matrix/math.hpp>
 
 #include <uORB/Publication.hpp>
-#include <uORB/topics/autogyro_takeoff_status.h>
+#include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/tune_control.h>
 
@@ -135,7 +135,7 @@ private:
 	matrix::Vector2d _takeoff_wp;
 
 	uORB::Publication<tune_control_s> _tune_control{ORB_ID(tune_control)};
-	uORB::Publication<autogyro_takeoff_status_s> _autogyro_takeoff_status_pub{ORB_ID(autogyro_takeoff_status)};
+	uORB::Publication<takeoff_status_s> _takeoff_status_pub{ORB_ID(takeoff_status)};
 
 	// TODO: templorary sollution. Should be replaced with autogyro takeoff status with
 	// translation into custom mavlink message.  Used to inform launch platform to

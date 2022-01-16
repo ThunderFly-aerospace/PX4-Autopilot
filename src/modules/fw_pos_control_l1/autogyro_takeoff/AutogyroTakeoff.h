@@ -92,6 +92,7 @@ public:
 	bool doPrerotate();
 
 	AutogyroTakeoffState getState() { return _state; }
+	float getMinAirspeedScaling() { return _param_rwto_airspd_scl.get(); }
 	bool isInitialized() { return _initialized; }
 
 	//	bool autogyroTakeoffEnabled() { return _param_ag_tkoff.get(); }

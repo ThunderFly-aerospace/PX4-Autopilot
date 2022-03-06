@@ -14,3 +14,9 @@ float32 number_concentration_pm4_0
 float32 number_concentration_pm10_0
 
 float32 typical_particle_size
+
+float32 relative_humidity
+float32 temperature
+
+float32 voc_index
+float32 nox_index

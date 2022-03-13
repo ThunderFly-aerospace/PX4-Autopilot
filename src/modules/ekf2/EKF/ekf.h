@@ -332,6 +332,7 @@ public:
 
 	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 	bool getRangeAidSuitable() const { return _is_range_aid_suitable;};
+	bool DataHealthy() {return _range_sensor.isDataHealthy();};
 
 private:
 

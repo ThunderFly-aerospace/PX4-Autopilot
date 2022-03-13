@@ -951,6 +951,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
 	lpos.aid_suitable = _ekf.getRangeAidSuitable();
+	lpos.is_data_healthy = _ekf.DataHealthy();
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
 	_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);

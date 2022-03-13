@@ -65,6 +65,7 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 	if (_is_faulty || isSampleOutOfDate(current_time_us) || !isDataContinuous()) {
 		_is_sample_valid = false;
 		_is_regularly_sending_data = false;
+		printf("Sensor is faulty:%d, sample out of date: %d, continuous_data %d\n", _is_faulty, isSampleOutOfDate(current_time_us),isDataContinuous());
 		return;
 	}
 
@@ -72,6 +73,7 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 
 	// Don't run the checks unless we have retrieved new data from the buffer
 	if (_is_sample_ready) {
+		printf("sample ready\n");
 		_is_sample_valid = false;
 
 		if (_sample.quality == 0) {
@@ -79,10 +81,10 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 
 		} else if (current_time_us - _time_bad_quality_us > _quality_hyst_us) {
 			// We did not receive bad quality data for some time
-
+			printf("Tilt is OK: %d, IsDataInRange: %d\n", isTiltOk(), isDataInRange());
 			if (isTiltOk() && isDataInRange()) {
 				updateStuckCheck();
-
+				printf("Is stuck: %d\n", _is_stuck);
 				if (!_is_stuck) {
 					_is_sample_valid = true;
 					_time_last_valid_us = _sample.time_us;

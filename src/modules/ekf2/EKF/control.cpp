@@ -928,7 +928,7 @@ void Ekf::controlHeightFusion()
 	if (_control_status.flags.baro_hgt) {
 
 		if (_baro_data_ready && !_baro_hgt_faulty) {
-			PX4_INFO("4. Fuse baro RANGEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
+			//PX4_INFO("4. Fuse baro RANGEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
 			fuseBaroHgt();
 		}
 
@@ -941,7 +941,7 @@ void Ekf::controlHeightFusion()
 	} else if (_control_status.flags.rng_hgt) {
 
 		if (_range_sensor.isDataHealthy()) {
-			PX4_INFO("4. Fuse rangefinder RANGEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
+			//PX4_INFO("4. Fuse rangefinder RANGEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
 			fuseRngHgt();
 		}
 

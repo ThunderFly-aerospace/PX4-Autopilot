@@ -87,22 +87,31 @@ void Ekf::predictHagl()
 
 void Ekf::controlHaglRngFusion()
 {
+	//printf("START:controlHaglRngFusion()\n");
+	//printf("TerrainFusionMask::TerrainFuseRangeFinder %d\n", TerrainFusionMask::TerrainFuseRangeFinder);
 	if (!(_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
 	    || _control_status.flags.rng_fault) {
-
+		//printf("Stoped Hagl Fusion\n");
+		//printf("_params.terrain_fusion_mode %ld\n", _params.terrain_fusion_mode);
+		//printf("TerrainFusionMask::TerrainFuseRangeFinder %d\n", TerrainFusionMask::TerrainFuseRangeFinder);
+		//printf("_control_status.flags.rng_fault %lu\n", _control_status.flags.rng_fault);
 		stopHaglRngFusion();
 		return;
 	}
 
+	//printf("_range_sensor.isDataHealthy() %d\n",_range_sensor.isDataHealthy());
 	if (_range_sensor.isDataHealthy()) {
-		const bool continuing_conditions_passing = _control_status.flags.in_air;
+		// const bool continuing_conditions_passing = _control_status.flags.in_air;
+		const bool continuing_conditions_passing = true; // TODO: Uncomment
+		//printf("In air: %lu\n", _control_status.flags.in_air);
 		//const bool continuing_conditions_passing = _control_status.flags.in_air && !_control_status.flags.rng_hgt; // TODO: should not be fused when using range height
 		const bool starting_conditions_passing = continuing_conditions_passing && _range_sensor.isRegularlySendingData();
 
 		_time_last_healthy_rng_data = _time_last_imu;
-
+		//printf("_hagl_sensor_status.flags.range_finder: %d\n",_hagl_sensor_status.flags.range_finder);
 		if (_hagl_sensor_status.flags.range_finder) {
 			if (continuing_conditions_passing) {
+				//printf("fuseHaglRng..................................................\n");
 				fuseHaglRng();
 
 				// We have been rejecting range data for too long
@@ -110,8 +119,10 @@ void Ekf::controlHaglRngFusion()
 				const bool is_fusion_failing = isTimedOut(_time_last_hagl_fuse, timeout);
 
 				if (is_fusion_failing) {
+					//printf("Fusion failing. \n");
 					if (_range_sensor.getDistBottom() > 2.f * _params.rng_gnd_clearance) {
 						// Data seems good, attempt a reset
+						//printf("resetHaglRng...........................................\n");
 						resetHaglRng();
 
 					} else if (starting_conditions_passing) {
@@ -128,11 +139,13 @@ void Ekf::controlHaglRngFusion()
 				}
 
 			} else {
+				//printf("stopHaglRngFusion()\n");
 				stopHaglRngFusion();
 			}
 
 		} else {
 			if (starting_conditions_passing) {
+				//printf("startHaglRngFusion()\n");
 				startHaglRngFusion();
 			}
 		}
@@ -141,6 +154,7 @@ void Ekf::controlHaglRngFusion()
 		// No data anymore. Stop until it comes back.
 		stopHaglRngFusion();
 	}
+	//printf("END:controlHaglRngFusion()\n");
 }
 
 void Ekf::startHaglRngFusion()
@@ -428,4 +442,5 @@ void Ekf::updateTerrainValidity()
 	const bool recent_flow_for_terrain_fusion = isRecent(_time_last_flow_terrain_fuse, (uint64_t)5e6);
 
 	_hagl_valid = (recent_range_fusion || recent_flow_for_terrain_fusion);
+	//printf("hagl_valid: %d\n",_hagl_valid);
 }

@@ -331,6 +331,7 @@ public:
 			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]);
 
 	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
+	bool getRangeAidSuitable() const { return _is_range_aid_suitable;};
 
 private:
 

@@ -947,14 +947,23 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	// Distance to bottom surface (ground) in meters
 	// constrain the distance to ground to _rng_gnd_clearance
-	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
-	lpos.dist_bottom_raw = _ekf.GetCompensatedDistance();
+	lpos.dist_bottom_estimated = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
+	lpos.dist_bottom_raw = _ekf.GetCompensatedDistance(); // Sensor measurment tilt compensated
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
+
+	lpos.dist_bottom = lpos.dist_bottom_estimated; 
+	// My dist_bottom evaluation
+	if(!lpos.dist_bottom_valid && _ekf.isAbleToSubsituteRangeEstimation() && _ekf.GetCompensatedDistance() <= _param_ekf2_rng_a_hmax.get()){
+		lpos.dist_bottom = lpos.dist_bottom_raw;
+	}
+
+	// My debug values
 	lpos.aid_suitable = _ekf.getRangeAidSuitable();
 	lpos.is_data_healthy = _ekf.DataHealthy();
 	lpos.is_ready = _ekf.Ready();
 	lpos.is_healthy = _ekf.Healthy();
+	
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
 	_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);

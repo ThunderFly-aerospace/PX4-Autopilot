@@ -336,6 +336,10 @@ public:
 	bool Healthy() {return _range_sensor.isHealthy();};
 	bool Ready() {return _range_sensor.isDataReady();};
 	float GetCompensatedDistance() {return _range_sensor.getDistBottom();};
+	bool isAbleToSubsituteRangeEstimation()
+	{
+		return true;//_range_sensor.getDistBottom() < 
+	}; 
 
 private:
 

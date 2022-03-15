@@ -281,6 +281,8 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 		range_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		_range_buffer->push(range_sample_new);
+		//printf("range buffer: %d/%d (%d Bytes)\n", _range_buffer->entries(), _range_buffer->get_length(), _range_buffer->get_total_size());
+
 	}
 }
 

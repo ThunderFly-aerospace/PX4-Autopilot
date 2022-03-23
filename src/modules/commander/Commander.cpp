@@ -2722,9 +2722,9 @@ Commander::run()
 					}
 				}
 
-				if (fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt || fd_status_flags.ext) {
-					const bool is_right_after_takeoff = hrt_elapsed_time(&_vehicle_status.takeoff_time) <
-									    (1_s * _param_com_lkdown_tko.get());
+				if (((fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt) && fd_status_flags.in_alt_range)
+				    || fd_status_flags.ext)  {
+					const bool is_right_after_takeoff = hrt_elapsed_time(&_status.takeoff_time) < (1_s * _param_com_lkdown_tko.get());
 
 					if (is_right_after_takeoff && !_lockdown_triggered) {
 						// This handles the case where something fails during the early takeoff phase
@@ -3032,6 +3032,7 @@ Commander::run()
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
+			fd_status.fd_att_in_alt_range = _failure_detector.getStatusFlags().in_alt_range;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
 			fd_status.timestamp = hrt_absolute_time();

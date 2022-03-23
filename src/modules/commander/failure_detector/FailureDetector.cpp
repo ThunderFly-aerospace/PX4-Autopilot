@@ -106,6 +106,17 @@ void FailureDetector::updateAttitudeStatus()
 		_status.flags.roll = _roll_failure_hysteresis.get_state();
 		_status.flags.pitch = _pitch_failure_hysteresis.get_state();
 	}
+
+	// check if attitude fail detector is in altitude range (below FD_FAIL_MAX_AGL)
+	vehicle_global_position_s global_position;
+
+	if (_vehicle_global_position_sub.update(&global_position) && _param_att_max_agl.get() > 0) {
+		float agl = global_position.terrain_alt - global_position.alt;
+
+		if (global_position.terrain_alt_valid) {
+			_status.flags.in_alt_range = (bool)(agl < _param_att_max_agl.get());
+		}
+	}
 }
 
 void FailureDetector::updateExternalAtsStatus()

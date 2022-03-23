@@ -107,6 +107,22 @@ PARAM_DEFINE_FLOAT(FD_FAIL_R_TTRI, 0.3);
 PARAM_DEFINE_FLOAT(FD_FAIL_P_TTRI, 0.3);
 
 /**
+ *  Maximum height at which the attitude detector can be triggered.
+ *
+ * For some types of aircraft, it is not safe to lockdown them high AGL altitude.
+ * This parameter can be used to set the height (AGL) above which the faill detector does not trigger.
+ * Value smaller then 0 means disable this condition.
+ *
+ * @unit m
+ * @min -1
+ * @max 100
+ * @decimal 1
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_ATT_MAX_AGL, -1.0);
+
+/**
  * Enable PWM input on for engaging failsafe from an external automatic trigger system (ATS).
  *
  * Enabled on either AUX5 or MAIN5 depending on board.

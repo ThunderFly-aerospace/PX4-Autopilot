@@ -51,6 +51,8 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 {
 	failure_detector_status_u status_prev = _status;
 
+	updateAltLimitsStatus();
+
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
 		updateAttitudeStatus();
 
@@ -69,8 +71,20 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		updateEscsStatus(vehicle_status);
 	}
 
-	if (_param_fd_imb_prop_thr.get() > 0) {
-		updateImbalancedPropStatus();
+	if (_param_fd_imb_prop_thr.get() > 0 || _param_fd_acc_max_val.get() > 0) {
+		bool updated = updateIMUdata();
+
+		if (updated && _imu_status.accel_device_id != 0
+		    && (_imu_status.accel_device_id == _selected_accel_device_id))  {
+
+			if (_param_fd_imb_prop_thr.get() > 0) {
+				updateImbalancedPropStatus();
+			}
+
+			if (_param_fd_acc_max_val.get() > 0) {
+				updateAccelStatus();
+			}
+		}
 	}
 
 	return _status.value != status_prev.value;
@@ -107,16 +121,6 @@ void FailureDetector::updateAttitudeStatus()
 		_status.flags.pitch = _pitch_failure_hysteresis.get_state();
 	}
 
-	// check if attitude fail detector is in altitude range (below FD_FAIL_MAX_AGL)
-	vehicle_global_position_s global_position;
-
-	if (_vehicle_global_position_sub.update(&global_position) && _param_att_max_agl.get() > 0) {
-		float agl = global_position.terrain_alt - global_position.alt;
-
-		if (global_position.terrain_alt_valid) {
-			_status.flags.in_alt_range = (bool)(agl < _param_att_max_agl.get());
-		}
-	}
 }
 
 void FailureDetector::updateExternalAtsStatus()
@@ -166,6 +170,93 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 void FailureDetector::updateImbalancedPropStatus()
 {
 
+	// if (_sensor_selection_sub.updated()) {
+	// 	sensor_selection_s selection;
+	//
+	// 	if (_sensor_selection_sub.copy(&selection)) {
+	// 		_selected_accel_device_id = selection.accel_device_id;
+	// 	}
+	// }
+	//
+	// const bool updated = _vehicle_imu_status_sub.updated(); // save before doing a copy
+	//
+	// // Find the imu_status instance corresponding to the selected accelerometer
+	// vehicle_imu_status_s imu_status{};
+	// _vehicle_imu_status_sub.copy(&imu_status);
+	//
+	// if (imu_status.accel_device_id != _selected_accel_device_id) {
+	//
+	// 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	// 		if (!_vehicle_imu_status_sub.ChangeInstance(i)) {
+	// 			continue;
+	// 		}
+	//
+	// 		if (_vehicle_imu_status_sub.copy(&imu_status)
+	// 		    && (imu_status.accel_device_id == _selected_accel_device_id)) {
+	// 			// instance found
+	// 			break;
+	// 		}
+	// 	}
+	// }
+
+	// if (updated) {
+
+	//if (_vehicle_imu_status_sub.copy(&imu_status)) {
+
+	//	if ((imu_status.accel_device_id != 0)
+	//	    && (imu_status.accel_device_id == _selected_accel_device_id)) {
+	const float dt = math::constrain((float)(_imu_status.timestamp - _imu_status_timestamp_prev), 0.01f, 1.f);
+	_imu_status_timestamp_prev = _imu_status.timestamp;
+
+	_imbalanced_prop_lpf.setParameters(dt, _imbalanced_prop_lpf_time_constant);
+
+	const float std_x = sqrtf(_imu_status.var_accel[0]);
+	const float std_y = sqrtf(_imu_status.var_accel[1]);
+	const float std_z = sqrtf(_imu_status.var_accel[2]);
+
+	// Note: the metric is done using standard deviations instead of variances to be linear
+	const float metric = (std_x + std_y) / 2.f - std_z;
+	const float metric_lpf = _imbalanced_prop_lpf.update(metric);
+
+	const bool is_imbalanced = metric_lpf > _param_fd_imb_prop_thr.get();
+	_status.flags.imbalanced_prop = is_imbalanced;
+	//	}
+	//}
+	// }
+}
+
+void FailureDetector::updateAccelStatus()
+{
+	const float g = sqrtf(_imu_status.mean_accel[0] * _imu_status.mean_accel[0]
+			      + _imu_status.mean_accel[1] * _imu_status.mean_accel[1]
+			      + _imu_status.mean_accel[2] * _imu_status.mean_accel[2]) / 9.8f;
+
+	_status.flags.g_overload = (bool)(g > _param_fd_acc_max_val.get());
+}
+
+
+void FailureDetector::updateAltLimitsStatus()
+{
+	// check if attitude fail detector is in altitude range (below FD_FAIL_MAX_AGL)
+	vehicle_global_position_s global_position;
+
+	if (_vehicle_global_position_sub.update(&global_position)) {
+		float agl = global_position.terrain_alt - global_position.alt;
+
+		if (global_position.terrain_alt_valid) {
+			if (_param_fd_att_max_agl.get() > 0) {
+				_status.flags.att_in_alt_range = (bool)(agl < _param_fd_att_max_agl.get());
+			}
+
+			if (_param_fd_acc_max_agl.get() > 0) {
+				_status.flags.goverload_in_alt_range = (bool)(agl < _param_fd_att_max_agl.get());
+			}
+		}
+	}
+}
+
+bool FailureDetector::updateIMUdata()
+{
 	if (_sensor_selection_sub.updated()) {
 		sensor_selection_s selection;
 
@@ -177,46 +268,23 @@ void FailureDetector::updateImbalancedPropStatus()
 	const bool updated = _vehicle_imu_status_sub.updated(); // save before doing a copy
 
 	// Find the imu_status instance corresponding to the selected accelerometer
-	vehicle_imu_status_s imu_status{};
-	_vehicle_imu_status_sub.copy(&imu_status);
+	//vehicle_imu_status_s _imu_status{};
+	_vehicle_imu_status_sub.copy(&_imu_status);
 
-	if (imu_status.accel_device_id != _selected_accel_device_id) {
+	if (_imu_status.accel_device_id != _selected_accel_device_id) {
 
 		for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			if (!_vehicle_imu_status_sub.ChangeInstance(i)) {
 				continue;
 			}
 
-			if (_vehicle_imu_status_sub.copy(&imu_status)
-			    && (imu_status.accel_device_id == _selected_accel_device_id)) {
+			if (_vehicle_imu_status_sub.copy(&_imu_status)
+			    && (_imu_status.accel_device_id == _selected_accel_device_id)) {
 				// instance found
 				break;
 			}
 		}
 	}
 
-	if (updated) {
-
-		if (_vehicle_imu_status_sub.copy(&imu_status)) {
-
-			if ((imu_status.accel_device_id != 0)
-			    && (imu_status.accel_device_id == _selected_accel_device_id)) {
-				const float dt = math::constrain((float)(imu_status.timestamp - _imu_status_timestamp_prev), 0.01f, 1.f);
-				_imu_status_timestamp_prev = imu_status.timestamp;
-
-				_imbalanced_prop_lpf.setParameters(dt, _imbalanced_prop_lpf_time_constant);
-
-				const float std_x = sqrtf(imu_status.var_accel[0]);
-				const float std_y = sqrtf(imu_status.var_accel[1]);
-				const float std_z = sqrtf(imu_status.var_accel[2]);
-
-				// Note: the metric is done using standard deviations instead of variances to be linear
-				const float metric = (std_x + std_y) / 2.f - std_z;
-				const float metric_lpf = _imbalanced_prop_lpf.update(metric);
-
-				const bool is_imbalanced = metric_lpf > _param_fd_imb_prop_thr.get();
-				_status.flags.imbalanced_prop = is_imbalanced;
-			}
-		}
-	}
+	return updated;
 }

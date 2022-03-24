@@ -61,7 +61,7 @@ void SensorRangeFinder::updateSensorToEarthRotation(const Dcmf &R_to_earth)
 void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 {
 	updateDtDataLpf(current_time_us);
-
+	
 	if (_is_faulty || isSampleOutOfDate(current_time_us) || !isDataContinuous()) {
 		_is_sample_valid = false;
 		_is_regularly_sending_data = false;

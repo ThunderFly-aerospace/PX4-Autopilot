@@ -379,6 +379,9 @@ protected:
 	//last time the baro ground effect compensation was turned on externally (uSec)
 	uint64_t _time_last_gnd_effect_on{0};
 
+	int64_t _dtime_rng_samples{0}; // time differecne between last two range samples
+	float drng_samples; // range differecne between last two range samples
+
 	fault_status_u _fault_status{};
 
 	// allocate data buffers and initialize interface variables

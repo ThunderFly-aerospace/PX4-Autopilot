@@ -951,12 +951,13 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.dist_bottom_raw = _ekf.GetCompensatedDistance(); // Sensor measurment tilt compensated
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
+	//printf("Range change: %f\n",1e6*_ekf.compute_rng_rate()); // Range change in [m/s]
 
-	lpos.dist_bottom = lpos.dist_bottom_estimated; 
+	lpos.dist_bottom = lpos.dist_bottom_estimated;
 	// My dist_bottom evaluation
-	if(!lpos.dist_bottom_valid && _ekf.isAbleToSubsituteRangeEstimation() && _ekf.GetCompensatedDistance() <= _param_ekf2_rng_a_hmax.get()){
+	/*if(!lpos.dist_bottom_valid && _ekf.isAbleToSubsituteRangeEstimation() && _ekf.GetCompensatedDistance() <= _param_ekf2_rng_a_hmax.get()){
 		lpos.dist_bottom = lpos.dist_bottom_raw;
-	}
+	}*/
 
 	// My debug values
 	lpos.aid_suitable = _ekf.getRangeAidSuitable();
@@ -1226,6 +1227,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.baro_device_id = _device_id_baro;
 	status.gyro_device_id = _device_id_gyro;
 	status.mag_device_id = _device_id_mag;
+	status.rng_sensor_selected = _distance_sensor_selected;
 
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
@@ -1800,32 +1802,34 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	distance_sensor_s distance_sensor;
 
-	if (_distance_sensor_selected < 0) {
-
-		if (_distance_sensor_subs.advertised()) {
-			for (unsigned i = 0; i < _distance_sensor_subs.size(); i++) {
-
-				if (_distance_sensor_subs[i].update(&distance_sensor)) {
-					// only use the first instace which has the correct orientation
+	if (_distance_sensor_subs.advertised()){
+		int distance_sensor_max_distance = -1;
+		for (unsigned i = 0; i < _distance_sensor_subs.size(); i++) {
+			bool valid = _distance_sensor_subs[i].update(&distance_sensor);
+			valid = (distance_sensor.current_distance >= distance_sensor.min_distance)
+				&& (distance_sensor.current_distance <= distance_sensor.max_distance) && valid;
+			
+			if (valid){
+				if (distance_sensor.max_distance > distance_sensor_max_distance){
+					distance_sensor_max_distance = distance_sensor.max_distance;
 					if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
-					    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
-
-						int ndist = orb_group_count(ORB_ID(distance_sensor));
-
-						if (ndist > 1) {
-							PX4_INFO("%d - selected distance_sensor:%d (%d advertised)", _instance, i, ndist);
-						}
-
+						&& (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 						_distance_sensor_selected = i;
 						_last_range_sensor_update = distance_sensor.timestamp;
-						_distance_sensor_last_generation = _distance_sensor_subs[_distance_sensor_selected].get_last_generation() - 1;
-						break;
-					}
+						_distance_sensor_last_generation = _distance_sensor_subs[i].get_last_generation() - 1;
+						int ndist = orb_group_count(ORB_ID(distance_sensor));
+						
+						if (ndist > 1) {
+							PX4_INFO("%d - selected distance_sensor:%d (%d advertised)", _instance, _distance_sensor_selected, ndist);
+						}
+		
+					}	
 				}
-			}
+			}	
 		}
+		
 	}
-
+	
 	if (_distance_sensor_selected >= 0 && _distance_sensor_subs[_distance_sensor_selected].update(&distance_sensor)) {
 		// EKF range sample
 

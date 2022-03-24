@@ -832,25 +832,17 @@ void Ekf::controlHeightFusion()
 	switch (_params.vdist_sensor_type) {
 	default:
 		ECL_ERR("Invalid hgt mode: %" PRIi32, _params.vdist_sensor_type);
-	_control_status.flags.in_air = 1 << 0; // TODO Remove!!
+	//_control_status.flags.in_air = 1 << 0; // TODO Remove!!
 	// FALLTHROUGH
 	case VDIST_SENSOR_BARO:
-		//PX4_INFO("1.5 Case SENSOR_BARO\n");
 		if (do_range_aid) {
-			//PX4_INFO("2. Do range aid.\n");
-			//printf("_control_status.flags.rng_hgt: %lu\n",_control_status.flags.rng_hgt);
-			//printf("_range_sensor.isDataHealthy(): %d\n",_range_sensor.isDataHealthy());
 			if (!_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-				//PX4_INFO("2.5 !_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()\n");
 				startRngAidHgtFusion();
 			}
 
 		} else {
-			//PX4_INFO("2. Not do range aid.\n");
 			if (!_control_status.flags.baro_hgt) {
-				//PX4_INFO("2.5 !_control_status.flags.baro_hgt\n");
 				if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
-					//PX4_INFO("2.7 startBaroHgtFusion();\n");
 					startBaroHgtFusion();
 
 				} else if (!_control_status.flags.gps_hgt && !_gps_intermittent && _gps_checks_passed) {
@@ -863,7 +855,6 @@ void Ekf::controlHeightFusion()
 		break;
 
 	case VDIST_SENSOR_RANGE:
-		//PX4_INFO("1.5 Case SENSOR_RANGE\n");
 		// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
 		// and are on the ground, then synthesise a measurement at the expected on ground value
 		if (!_control_status.flags.in_air
@@ -955,7 +946,7 @@ void Ekf::controlHeightFusion()
 
 void Ekf::checkRangeAidSuitability()
 {
-	_control_status.flags.in_air = 1 << 0; // TODO Remove!!
+	//_control_status.flags.in_air = 1 << 0; // TODO Remove!!
 	if (_control_status.flags.in_air
 	    && _range_sensor.isHealthy()
 	    && isTerrainEstimateValid()) {

@@ -336,10 +336,19 @@ public:
 	bool Healthy() {return _range_sensor.isHealthy();};
 	bool Ready() {return _range_sensor.isDataReady();};
 	float GetCompensatedDistance() {return _range_sensor.getDistBottom();};
-	bool isAbleToSubsituteRangeEstimation()
+	/*
+	bool isAbleToSubsituteRangeEstimation() // TODO Function will control, height rate(if it's too big sensor measures wrong). 
 	{
-		return true;//_range_sensor.getDistBottom() < 
-	}; 
+		if (abs(1e6*compute_rng_rate())> max_rng_rate/cos(pi/4)){
+			return false;
+		}
+		else{
+			return true;
+		}
+	};
+
+	double compute_rng_rate(){return (drng_samples/(float)_dtime_rng_samples);}; // [m/us]
+	*/
 
 private:
 
@@ -570,6 +579,8 @@ private:
 	bool _is_range_aid_suitable{false};	///< true when range finder can be used in flight as the height reference instead of the primary height sensor
 
 	float _height_rate_lpf{0.0f};
+
+	//float max_hgt_rate{5.0f}
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step

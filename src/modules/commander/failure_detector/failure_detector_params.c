@@ -123,6 +123,16 @@ PARAM_DEFINE_FLOAT(FD_FAIL_P_TTRI, 0.3);
 PARAM_DEFINE_FLOAT(FD_ATT_MAX_AGL, -1.0);
 
 /**
+ *  Accel failture detector overload
+ *
+ *
+ *
+ */
+PARAM_DEFINE_FLOAT(FD_ACC_MAX_VAL, -1.0);
+
+PARAM_DEFINE_FLOAT(FD_ACC_MAX_AGL, -1.0);
+
+/**
  * Enable PWM input on for engaging failsafe from an external automatic trigger system (ATS).
  *
  * Enabled on either AUX5 or MAIN5 depending on board.

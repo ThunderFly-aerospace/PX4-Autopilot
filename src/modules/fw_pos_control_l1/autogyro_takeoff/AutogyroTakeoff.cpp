@@ -64,7 +64,8 @@ AutogyroTakeoff::AutogyroTakeoff(ModuleParams *parent) :
 {
 }
 
-void AutogyroTakeoff::init(const hrt_abstime &now, float yaw, double current_lat, double current_lon)
+void AutogyroTakeoff::init(const hrt_abstime &now, float yaw, double current_lat, double current_lon,
+			   matrix::Vector2f curr_pos_local)
 {
 	_init_yaw = yaw;
 	_initialized = true;
@@ -77,6 +78,8 @@ void AutogyroTakeoff::init(const hrt_abstime &now, float yaw, double current_lat
 	_takeoff_wp(1) = current_lon;
 	_initial_wp(0) = current_lat;
 	_initial_wp(1) = current_lon;
+	_takeoff_wp_local = curr_pos_local;
+	_initial_wp_local = curr_pos_local;
 }
 
 void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor_rpm, float alt_agl,

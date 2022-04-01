@@ -92,7 +92,7 @@ public:
 	AutogyroTakeoff(ModuleParams *parent);
 	~AutogyroTakeoff() = default;
 
-	void init(const hrt_abstime &now, float yaw, double current_lat, double current_lon);
+	void init(const hrt_abstime &now, float yaw, double current_lat, double current_lon, matrix::Vector2f curr_pos_local);
 	void update(const hrt_abstime &now, float airspeed, float rotor_rpm, float alt_agl, double current_lat,
 		    double current_lon,
 		    orb_advert_t *mavlink_log_pub);
@@ -120,6 +120,7 @@ public:
 	float getMaxPitch(float max);
 	// bool setState(int new_state);
 	const matrix::Vector2d &getStartWP() const { return _takeoff_wp; };
+	const matrix::Vector2f &getStartLocalWP() const { return _takeoff_wp_local; };
 
 	void reset();
 
@@ -141,6 +142,8 @@ private:
 
 	matrix::Vector2d _initial_wp;
 	matrix::Vector2d _takeoff_wp;
+	matrix::Vector2f _initial_wp_local;
+	matrix::Vector2f _takeoff_wp_local;
 
 	uORB::Publication<tune_control_s> _tune_control{ORB_ID(tune_control)};
 	uORB::Publication<autogyro_takeoff_status_s> _autogyro_takeoff_status_pub{ORB_ID(autogyro_takeoff_status)};

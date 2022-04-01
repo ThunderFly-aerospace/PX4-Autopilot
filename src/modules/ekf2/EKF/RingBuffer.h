@@ -55,6 +55,11 @@ public:
 	RingBuffer(RingBuffer &&) = delete;
 	RingBuffer &operator=(RingBuffer &&) = delete;
 
+	uint64_t get_last_rngsample_time(){ return _buffer[_head].time_us;};
+
+	float get_last_rngsample_value(){ return _buffer[_head].rng;};
+	
+
 	bool allocate(uint8_t size)
 	{
 		if (valid() && (size == _size)) {

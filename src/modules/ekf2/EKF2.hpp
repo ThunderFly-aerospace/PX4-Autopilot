@@ -265,7 +265,7 @@ private:
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
 	unsigned _distance_sensor_last_generation{0};
-
+	int _distance_sensor_last_selected{-1};
 	bool _callback_registered{false};
 
 	hrt_abstime _last_event_flags_publish{0};

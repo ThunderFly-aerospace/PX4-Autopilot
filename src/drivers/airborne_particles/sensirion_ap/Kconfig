@@ -1,0 +1,5 @@
+menuconfig DRIVERS_AIRBORNE_PARTICLES_SENSIRION_AP
+	bool "Sensirion SPS30 and SEN5x"
+	default n
+	---help---
+		Enable SPS30 and SEN5x series airborne particles sensors.

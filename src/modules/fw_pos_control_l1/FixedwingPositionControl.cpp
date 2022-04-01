@@ -1345,7 +1345,7 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const floa
 		prev_wp(1) = pos_sp_curr.lon;
 	}
 
-	float mission_airspeed = _param_fw_airspd_trim.get();
+	float airspeed_sp = -1.f;
 
 	if (PX4_ISFINITE(pos_sp_curr.cruising_speed) &&
 	    pos_sp_curr.cruising_speed > FLT_EPSILON) {
@@ -1486,7 +1486,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	if (_autogyro_takeoff.autogyroTakeoffEnabled()) {
 		if (!_autogyro_takeoff.isInitialized()) {
-			_autogyro_takeoff.init(now, _yaw, _current_latitude, _current_longitude);
+			_autogyro_takeoff.init(now, _yaw, _current_latitude, _current_longitude, curr_pos_local);
 
 			/* need this already before takeoff is detected
 			 * doesn't matter if it gets reset when takeoff is detected eventually */
@@ -1508,13 +1508,14 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		 * Update navigation: _autogyro_takeoff returns the start WP according to mode and phase.
 		 * If we use the navigator heading or not is decided later.
 		 */
-		_l1_control.navigate_waypoints(_autogyro_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed);
+		_l1_control.navigate_waypoints(_autogyro_takeoff.getStartLocalWP(), curr_wp_local, curr_pos_local,
+					       get_nav_speed_2d(ground_speed));
 
 		// update tecs
 		const float takeoff_pitch_max_deg = _autogyro_takeoff.getMaxPitch(_param_fw_p_lim_max.get());
 
 		tecs_update_pitch_throttle(now, pos_sp_curr.alt,
-					   calculate_target_airspeed(_autogyro_takeoff.getRequestedAirspeed(), ground_speed),
+					   get_auto_airspeed_setpoint(now, _autogyro_takeoff.getRequestedAirspeed(), ground_speed, dt),
 					   radians(_param_fw_p_lim_min.get()),
 					   radians(takeoff_pitch_max_deg),
 					   _param_fw_thr_min.get(),

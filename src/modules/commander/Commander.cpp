@@ -2758,7 +2758,7 @@ Commander::run()
 						 * </profile>
 						 */
 						events::send(events::ID("commander_fd_att_terminate"), {events::Log::Emergency, events::LogInternal::Warning},
-							     "Critical failure detected: terminate flight");
+							     "Critical failure detected (Attitude): terminate flight");
 						send_parachute_command();
 					}
 				}
@@ -2769,6 +2769,7 @@ Commander::run()
 
 					if (!_status_flags.circuit_breaker_flight_termination_disabled &&
 					    !_flight_termination_triggered && !_lockdown_triggered) {
+						PX4_INFO("PX4 G OVERLOAD --- kill me ...");
 
 						_armed.force_failsafe = true;
 						_flight_termination_triggered = true;
@@ -2783,7 +2784,7 @@ Commander::run()
 						 * </profile>
 						 */
 						events::send(events::ID("commander_fd_overg_terminate"), {events::Log::Emergency, events::LogInternal::Warning},
-							     "Critical failure detected: terminate flight");
+							     "Critical failure detected (G-overload): terminate flight");
 					}
 				}
 

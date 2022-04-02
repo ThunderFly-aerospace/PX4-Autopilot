@@ -385,6 +385,12 @@ void FailureDetector::updateAltLimitsStatus()
 			if (_param_fd_acc_max_agl.get() > 0) {
 				_status.flags.goverload_in_alt_range = (bool)(agl < _param_fd_att_max_agl.get());
 			}
+
+		} else {
+			// If height estimation is not available, consider that you want to use the detector.
+			_status.flags.att_in_alt_range = true;
+			_status.flags.goverload_in_alt_range = true;
+
 		}
 	}
 }

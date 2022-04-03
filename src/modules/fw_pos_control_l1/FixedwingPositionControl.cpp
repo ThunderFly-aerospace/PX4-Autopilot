@@ -1505,16 +1505,19 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		 * Update navigation: _autogyro_takeoff returns the start WP according to mode and phase.
 		 * If we use the navigator heading or not is decided later.
 		 */
+		Vector2f prev_wp_local = _global_local_proj_ref.project(_runway_takeoff.getStartWP()(0),
+					 _runway_takeoff.getStartWP()(1));
 
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			_npfg.navigateWaypoints(_autogyro_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed, _wind_vel);
+			_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+
 			_att_sp.roll_body = _autogyro_takeoff.getRoll(_npfg.getRollSetpoint());
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 		} else {
-			_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed);
+			_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 			_att_sp.roll_body = _autogyro_takeoff.getRoll(_l1_control.get_roll_setpoint());
 		}
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <HealthFlags.h>
+#include <lib/parameters/param.h>
 
 bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
 				 const vehicle_control_mode_s &control_mode,
@@ -219,6 +220,19 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 			// feedback provided in arm_auth_check
 			prearm_ok = false;
 		}
+	}
+
+
+	int32_t param_rwto_tkoff{0};
+	param_get(param_find("RWTO_TKOFF"), &param_rwto_tkoff);
+	int32_t param_ag_tkoff{0};
+	param_get(param_find("AG_TKOFF"), &param_ag_tkoff);
+
+	if (param_rwto_tkoff && param_ag_tkoff) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Arming denied, FW and AG takeoff eneabled together");
+		}
+		prearm_ok = false;
 	}
 
 

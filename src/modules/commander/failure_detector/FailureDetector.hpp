@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/esc_status.h>
@@ -70,6 +71,9 @@ union failure_detector_status_u {
 		uint16_t high_wind : 1;
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
+		uint16_t att_in_alt_range: 1;
+		uint16_t g_overload: 1;
+		uint16_t goverload_in_alt_range: 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -91,6 +95,11 @@ private:
 	void updateExternalAtsStatus();
 	void updateEscsStatus(const vehicle_status_s &vehicle_status);
 	void updateImbalancedPropStatus();
+	void updateAccelStatus();
+	void updateAltLimitsStatus();
+
+	bool updateIMUdata();
+	vehicle_imu_status_s _imu_status{};
 
 	failure_detector_status_u _status{};
 
@@ -105,6 +114,7 @@ private:
 	hrt_abstime _imu_status_timestamp_prev{0};
 
 	uORB::Subscription _vehicule_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
@@ -118,6 +128,9 @@ private:
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
-		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr
+		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
+		(ParamFloat<px4::params::FD_ATT_MAX_AGL>) _param_fd_att_max_agl,
+		(ParamFloat<px4::params::FD_ACC_MAX_VAL>) _param_fd_acc_max_val,
+		(ParamFloat<px4::params::FD_ACC_MAX_AGL>) _param_fd_acc_max_agl
 	)
 };

@@ -89,18 +89,17 @@ void Ekf::controlHaglRngFusion()
 {
 	if (!(_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
 	    || _control_status.flags.rng_fault) {
-
 		stopHaglRngFusion();
 		return;
 	}
 
 	if (_range_sensor.isDataHealthy()) {
 		const bool continuing_conditions_passing = _control_status.flags.in_air;
+		//const bool continuing_conditions_passing = true; // TODO: comment
 		//const bool continuing_conditions_passing = _control_status.flags.in_air && !_control_status.flags.rng_hgt; // TODO: should not be fused when using range height
 		const bool starting_conditions_passing = continuing_conditions_passing && _range_sensor.isRegularlySendingData();
 
 		_time_last_healthy_rng_data = _time_last_imu;
-
 		if (_hagl_sensor_status.flags.range_finder) {
 			if (continuing_conditions_passing) {
 				fuseHaglRng();

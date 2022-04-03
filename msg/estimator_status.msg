@@ -123,6 +123,7 @@ uint32 accel_device_id
 uint32 gyro_device_id
 uint32 baro_device_id
 uint32 mag_device_id
+int32 rng_sensor_selected
 
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)

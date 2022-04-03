@@ -113,12 +113,21 @@ bool Ekf::update()
 		runTerrainEstimator();
 
 		updated = true;
-	}
 
+		// run EKF-GSF yaw estimator
+		runYawEKFGSF();
+		
+	}
+	
 	// the output observer always runs
 	// Use full rate IMU data at the current time horizon
 	calculateOutputStates(_newest_high_rate_imu_sample);
-
+	if(updated){
+		//printf("Updated\n");
+	}
+	else{
+		//printf("Not Updated\n");
+	}
 	return updated;
 }
 

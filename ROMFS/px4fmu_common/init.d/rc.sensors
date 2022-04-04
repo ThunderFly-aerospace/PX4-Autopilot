@@ -172,7 +172,10 @@ fi
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
-	icm20948_i2c_passthrough -X -q start
+	if ! icm20948_i2c_passthrough -X -q start
+	then
+	    icm20948_i2c_passthrough -X -q -a 0x68 start
+    fi
 
 	# compasses
 	hmc5883 -T -X -q start
@@ -185,6 +188,16 @@ then
 
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
+
+	# Try running the SDP3x driver again. If not behind icm20948 passthrough
+	if param compare -s SENS_EN_SDP3X 1
+	then
+		if ! sdp3x_airspeed start -X
+		then
+			# try another common address
+			sdp3x_airspeed start -X -a 0x22
+		fi
+	fi
 fi
 
 ###############################################################################

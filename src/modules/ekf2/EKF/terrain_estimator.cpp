@@ -95,7 +95,7 @@ void Ekf::controlHaglRngFusion()
 
 	if (_range_sensor.isDataHealthy()) {
 		const bool continuing_conditions_passing = _control_status.flags.in_air;
-		//const bool continuing_conditions_passing = true; // TODO: comment
+		//const bool continuing_conditions_passing = true; // TODO: REMOVE
 		//const bool continuing_conditions_passing = _control_status.flags.in_air && !_control_status.flags.rng_hgt; // TODO: should not be fused when using range height
 		const bool starting_conditions_passing = continuing_conditions_passing && _range_sensor.isRegularlySendingData();
 
@@ -109,11 +109,13 @@ void Ekf::controlHaglRngFusion()
 				const bool is_fusion_failing = isTimedOut(_time_last_hagl_fuse, timeout);
 
 				if (is_fusion_failing) {
+					PX4_INFO("Fusion failing.");
 					if (_range_sensor.getDistBottom() > 2.f * _params.rng_gnd_clearance) {
 						// Data seems good, attempt a reset
 						resetHaglRng();
 
 					} else if (starting_conditions_passing) {
+						PX4_INFO("Passing starting conditions. Setting faulty.");
 						// The sensor can probably not detect the ground properly
 						// declare the sensor faulty and stop the fusion
 						_control_status.flags.rng_fault = true;

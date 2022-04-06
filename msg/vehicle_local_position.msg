@@ -52,11 +52,11 @@ float64 ref_lon				# Reference point longitude, (degrees)
 float32 ref_alt				# Reference altitude AMSL, (metres)
 
 # Distance to surface
-float32 dist_bottom_estimated		# Estimated distance from from bottom surface to ground (metres)
 float32 dist_bottom_raw		# Directly tilt compensated rangefinder data with angle estamtes (metres)
 float32 dist_bottom			# Distance from from bottom surface to ground (metres)
 bool dist_bottom_valid			# true if distance to bottom surface is valid
 uint8 dist_bottom_sensor_bitfield	# bitfield indicating what type of sensor is used to estimate dist_bottom
+int32 dist_bottom_sensor_instance 	# index of distance sensor used
 bool aid_suitable			# True if range aid is suitable (my debug variable)
 bool is_data_healthy			# True if sensor data is ready and heatly (my debug variable)
 bool is_ready				# (my debug variable)

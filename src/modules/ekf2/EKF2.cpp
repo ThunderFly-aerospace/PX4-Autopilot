@@ -947,13 +947,13 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	// Distance to bottom surface (ground) in meters
 	// constrain the distance to ground to _rng_gnd_clearance
-	lpos.dist_bottom_estimated = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
+	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
 	lpos.dist_bottom_raw = _ekf.GetCompensatedDistance(); // Sensor measurment tilt compensated
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
-	//printf("Range change: %f\n",1e6*_ekf.compute_rng_rate()); // Range change in [m/s]
+	lpos.dist_bottom_sensor_instance = _distance_sensor_selected;
 
-	lpos.dist_bottom = lpos.dist_bottom_estimated;
+	
 	// My dist_bottom evaluation
 	/*if(!lpos.dist_bottom_valid && _ekf.isAbleToSubsituteRangeEstimation() && _ekf.GetCompensatedDistance() <= _param_ekf2_rng_a_hmax.get()){
 		lpos.dist_bottom = lpos.dist_bottom_raw;
@@ -1801,7 +1801,7 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	distance_sensor_s distance_sensor;
-
+	bool updated = false;
 	if (_distance_sensor_subs.advertised()){
 		int distance_sensor_max_distance = -1;
 		for (unsigned i = 0; i < _distance_sensor_subs.size(); i++) {
@@ -1817,20 +1817,21 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 						_distance_sensor_selected = i;
 						_last_range_sensor_update = distance_sensor.timestamp;
 						_distance_sensor_last_generation = _distance_sensor_subs[i].get_last_generation() - 1;
-						int ndist = orb_group_count(ORB_ID(distance_sensor));
+						updated = true;
+						/*int ndist = orb_group_count(ORB_ID(distance_sensor));
 						
-						if (ndist > 1) {
+						if (ndist > 1 && (_distance_sensor_selected != _selected_sensor_prev)) {
 							PX4_INFO("%d - selected distance_sensor:%d (%d advertised)", _instance, _distance_sensor_selected, ndist);
 						}
+						*/
 		
 					}	
 				}
 			}	
 		}
-		
 	}
-	
-	if (_distance_sensor_selected >= 0 && _distance_sensor_subs[_distance_sensor_selected].update(&distance_sensor)) {
+
+	if (_distance_sensor_selected >= 0 && updated){//&& _distance_sensor_subs[_distance_sensor_selected].update(&distance_sensor)) {
 		// EKF range sample
 
 		if (_msg_missed_distance_sensor_perf == nullptr) {

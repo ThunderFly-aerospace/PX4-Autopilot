@@ -77,6 +77,7 @@ px4_add_romfs_files(
 	rover_generic.main.mix
 	standard_vtol_hitl.main.mix
 	TF-AutoG2.main.mix
+	TF-G2.main.mix
 	tilt_quad.aux.mix
 	tilt_quad.main.mix
 	tri_y_yaw+.main.mix

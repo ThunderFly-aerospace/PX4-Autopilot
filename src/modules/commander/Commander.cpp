@@ -2738,9 +2738,9 @@ Commander::run()
 					}
 				}
 
-				if (fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt || fd_status_flags.ext) {
-					const bool is_right_after_takeoff = hrt_elapsed_time(&_vehicle_status.takeoff_time) <
-									    (1_s * _param_com_lkdown_tko.get());
+				if (((fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt) && fd_status_flags.att_in_alt_range)
+				    || fd_status_flags.ext)  {
+					const bool is_right_after_takeoff = hrt_elapsed_time(&_status.takeoff_time) < (1_s * _param_com_lkdown_tko.get());
 
 					if (is_right_after_takeoff && !_lockdown_triggered) {
 						// This handles the case where something fails during the early takeoff phase
@@ -2773,9 +2773,34 @@ Commander::run()
 						 * Flight termination can be disabled with the parameter <param>CBRK_FLIGHTTERM</param>.
 						 * </profile>
 						 */
-						events::send(events::ID("commander_fd_terminate"), {events::Log::Emergency, events::LogInternal::Warning},
-							     "Critical failure detected: terminate flight");
+						events::send(events::ID("commander_fd_att_terminate"), {events::Log::Emergency, events::LogInternal::Warning},
+							     "Critical failure detected (Attitude): terminate flight");
 						send_parachute_command();
+					}
+				}
+
+				if (fd_status_flags.g_overload && !_g_overload_check_triggered && fd_status_flags.goverload_in_alt_range) {
+					_status_changed = true;
+					_g_overload_check_triggered = true;
+
+					if (!_status_flags.circuit_breaker_flight_termination_disabled &&
+					    !_flight_termination_triggered && !_lockdown_triggered) {
+						PX4_INFO("PX4 G OVERLOAD --- kill me ...");
+
+						_armed.force_failsafe = true;
+						_flight_termination_triggered = true;
+
+						mavlink_log_emergency(&_mavlink_log_pub, "Critical G-overload detected: terminate flight\t");
+						/* EVENT
+						 * @description
+						 * Critical failures include too much G overload.
+						 *
+						 * <profile name="dev">
+						 * Flight termination can be disabled with the parameter <param>CBRK_FLIGHTTERM</param>.
+						 * </profile>
+						 */
+						events::send(events::ID("commander_fd_overg_terminate"), {events::Log::Emergency, events::LogInternal::Warning},
+							     "Critical failure detected (G-overload): terminate flight");
 					}
 				}
 
@@ -3049,7 +3074,11 @@ Commander::run()
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
+			fd_status.fd_att_in_alt_range = _failure_detector.getStatusFlags().in_alt_range;
+			fd_status.fd_att_in_alt_range = _failure_detector.getStatusFlags().att_in_alt_range;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
+			fd_status.fd_g_overload = _failure_detector.getStatusFlags().g_overload;
+			fd_status.fd_goverload_in_alt_range = _failure_detector.getStatusFlags().goverload_in_alt_range;
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
 			fd_status.timestamp = hrt_absolute_time();
 			_failure_detector_status_pub.publish(fd_status);

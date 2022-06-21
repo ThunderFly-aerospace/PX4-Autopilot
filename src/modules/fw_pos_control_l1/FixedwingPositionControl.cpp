@@ -949,12 +949,13 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _runway_takeoff.runwayTakeoffEnabled()) {
 
-		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
+		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(control_interval, get_tecs_thrust());
 
 	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _autogyro_takeoff.autogyroTakeoffEnabled()) {
 
-		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(now, min(get_tecs_thrust(), _param_fw_thr_max.get()));
+		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(control_interval, min(get_tecs_thrust(),
+					 _param_fw_thr_max.get()));
 
 	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 
@@ -1477,9 +1478,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_autogyro_takeoff.update(now, _airspeed, _rotor_rpm, _current_altitude - _takeoff_ground_alt,
 					 _current_latitude, _current_longitude, &_mavlink_log_pub);
 
-		float target_airspeed = get_auto_airspeed_setpoint(now,
-					_runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get(), ground_speed,
-					dt);
+		float target_airspeed = get_auto_airspeed_setpoint(control_interval,
+					_runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get(), ground_speed);
 		/*
 		 * Update navigation: _autogyro_takeoff returns the start WP according to mode and phase.
 		 * If we use the navigator heading or not is decided later.

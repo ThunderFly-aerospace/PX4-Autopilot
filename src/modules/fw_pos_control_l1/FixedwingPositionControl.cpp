@@ -963,27 +963,7 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	}
 
 	/* Copy thrust output for publication, handle special cases */
-	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && // launchdetector only available in auto
-	    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
-	    !_runway_takeoff.runwayTakeoffEnabled() && !_autogyro_takeoff.autogyroTakeoffEnabled()) {
-
-		/* making sure again that the correct thrust is used,
-		 * without depending on library calls for safety reasons.
-		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
-
-	} else if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   _runway_takeoff.runwayTakeoffEnabled()) {
-
-		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(control_interval, get_tecs_thrust());
-
-	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-		   _autogyro_takeoff.autogyroTakeoffEnabled()) {
-
-		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(control_interval, min(get_tecs_thrust(),
-					 _param_fw_thr_max.get()));
-
-	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 
 		_att_sp.thrust_body[0] = 0.0f;
 
@@ -1748,6 +1728,33 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 	}
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, _takeoff_ground_alt);
+
+	if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS && !_runway_takeoff.runwayTakeoffEnabled()
+	    && !_autogyro_takeoff.autogyroTakeoffEnabled()) {
+
+		/* making sure again that the correct thrust is used,
+		 * without depending on library calls for safety reasons.
+		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
+		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
+
+	} else if (_runway_takeoff.runwayTakeoffEnabled()) {
+
+		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
+
+	} else if (_autogyro_takeoff.autogyroTakeoffEnabled()) {
+		PX4_INFO("Spoustim GETTHROTTLE");
+		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(now, get_tecs_thrust());
+
+	} else {
+		/* Copy thrust and pitch values from tecs */
+		// when we are landed state we want the motor to spin at idle speed
+		_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
+	}
+
+	// only use TECS pitch setpoint if launch has not been detected and runway takeoff is not enabled
+	if (!(_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled())) {
+		_att_sp.pitch_body = get_tecs_pitch();
+	}
 
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);

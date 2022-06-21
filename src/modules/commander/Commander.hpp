@@ -248,6 +248,8 @@ private:
 
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
+		(ParamInt<px4::params::RWTO_TKOFF>) _param_rwto_tkoff,
+		(ParamInt<px4::params::AG_TKOFF>) _param_ag_tkoff,
 
 		// Circuit breakers
 		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,

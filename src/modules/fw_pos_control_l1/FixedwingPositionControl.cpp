@@ -1696,7 +1696,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
 
 	} else if (_autogyro_takeoff.autogyroTakeoffEnabled()) {
-		PX4_INFO("Spoustim GETTHROTTLE");
 		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(now, get_tecs_thrust());
 
 	} else {

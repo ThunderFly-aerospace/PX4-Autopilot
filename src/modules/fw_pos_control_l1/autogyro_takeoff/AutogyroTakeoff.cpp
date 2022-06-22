@@ -367,8 +367,6 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 
 	float idle = (double)_param_fw_thr_idle.get();
 
-	PX4_INFO("GET THROTTLE %f, state: %f, time: %f", (double)idle, (double)_state, (double)(now - _time_in_state));
-
 	switch (_state) {
 
 	case AutogyroTakeoffState::TAKEOFF_ERROR:

@@ -9,7 +9,7 @@ S: 0 2   10000   10000    0 -10000  10000
 # 1 mixer for the pusher/puller throttle
 M: 1
 O:      10000  10000      0 -10000  10000
-S: 0 3      0  20000 -10000 -10000  10000
+S: 0 3   10000   10000    0 -10000  10000
 
 # 2 mixer for the aileron
 M: 1

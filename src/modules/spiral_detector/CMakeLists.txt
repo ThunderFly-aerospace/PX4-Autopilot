@@ -31,10 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__detectors__spiral_detector
-	MAIN spiral_detector_main
+	MODULE modules__spiral_detector
+	MAIN spiral_detector
 	SRCS
 		spiral_detector.cpp
+		spiral_detector.hpp
 	DEPENDS
 		px4_work_queue
 	)

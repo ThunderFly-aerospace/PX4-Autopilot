@@ -1,4 +1,4 @@
-menuconfig MODULES_DETECTORS__SPIRAL_DETECTOR
+menuconfig MODULES_SPIRAL_DETECTOR
 	bool "spiral_detector"
 	default n
 	---help---

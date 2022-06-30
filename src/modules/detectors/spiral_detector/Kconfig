@@ -1,0 +1,5 @@
+menuconfig MODULES_DETECTORS__SPIRAL_DETECTOR
+	bool "spiral_detector"
+	default n
+	---help---
+		Enable spiral detector

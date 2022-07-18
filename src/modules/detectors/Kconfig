@@ -1,0 +1,9 @@
+menu "detectors"
+    menuconfig COMMON_DETECTORS
+        bool "detectors"
+        default n
+        select MODULES__DETECTORS__SPIRAL_DETECTOR
+        ---help---
+            Enable default set of flight detectors drivers
+    rsource "*/Kconfig"
+endmenu #detectors

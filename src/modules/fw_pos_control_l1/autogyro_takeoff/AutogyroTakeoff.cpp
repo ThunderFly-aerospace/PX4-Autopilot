@@ -305,12 +305,13 @@ float AutogyroTakeoff::getPitch(float tecsPitch)
 	switch (_state) {
 
 	case AutogyroTakeoffState::TAKEOFF_ERROR:
-	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START: // 0 Null pitch
 		return 0;
 
+	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START: // 0 Null pitch
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:   // 1 maximal pitch
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: // 2
-		return math::radians(_param_rwto_max_pitch.get());
+		//return math::radians(_param_rwto_max_pitch.get());
+		return math::radians(_param_rwto_psp.get());
 
 	// FLy
 	default:

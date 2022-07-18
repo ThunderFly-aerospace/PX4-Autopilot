@@ -1,0 +1,6 @@
+uint64 timestamp
+uint8 spiral_status
+float32 rotation_speed
+float32 rotation_angle
+uint64 rotation_start
+uint64 rotation_time

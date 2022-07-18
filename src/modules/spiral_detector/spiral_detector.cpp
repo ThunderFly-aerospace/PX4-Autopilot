@@ -69,14 +69,14 @@ void SpiralDetector::Run()
 
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
-
-	// Check if parameters have changed
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
-	}
+	//
+	// // Check if parameters have changed
+	// if (_parameter_update_sub.updated()) {
+	// 	// clear update
+	// 	parameter_update_s param_update;
+	// 	_parameter_update_sub.copy(&param_update);
+	// 	updateParams(); // update module parameters (in DEFINE_PARAMETERS)
+	// }
 
 
 	// Example
@@ -115,49 +115,62 @@ void SpiralDetector::Run()
 	// 	}
 	// }
 
-	if (_vehicle_local_position_sub.updated()){
+	if (_vehicle_local_position_sub.updated()) {
+		spiral_status_s spiral_status{};
 		vehicle_local_position_s local_pos;
 
 		if (_vehicle_local_position_sub.copy(&local_pos)) {
 
-		_rotation_speed = (local_pos.heading - _last_heading)/ (local_pos.timestamp - _last_timestamp)*1000000;
-		//_rotation_speed = local_pos.delta_heading;
+			_rotation_speed = (local_pos.heading - _last_heading) / (local_pos.timestamp - _last_timestamp) * 1000000;
+			spiral_status.rotation_speed = _rotation_speed;
+			spiral_status.timestamp = hrt_absolute_time();
+			//_rotation_speed = local_pos.delta_heading;
 
-		PX4_INFO("%ld", local_pos.timestamp);
-		PX4_INFO("RotSpd: Heading: %f, Rot speed: %f", (double) local_pos.heading, (double) _rotation_speed);
-		if(_rotation_speed < -2){
-			if(rotation_status == 0){
-				PX4_INFO("ENTERED INTO SPIRAL FAILSAFE");
-				rotation_start = hrt_absolute_time();
-				rotation_status = 1;
-				rotation_integration = 0;
-				PX4_INFO("");
+			PX4_INFO("%ld", local_pos.timestamp);
+			PX4_INFO("RotSpd: Heading: %f, Rot speed: %f", (double) local_pos.heading, (double) _rotation_speed);
+
+			if (abs(_rotation_speed) > 2) {
+				if (rotation_status == 0) {
+					PX4_INFO("ENTERED INTO SPIRAL FAILSAFE");
+					rotation_start = hrt_absolute_time();
+					rotation_status = 1;
+					rotation_integration = 0;
+					PX4_INFO("");
+
+				} else {
+					rotation_integration += abs(local_pos.heading - _last_heading);
+				}
+
+				if (rotation_integration > 1.2f) {
+					PX4_INFO("!!!! Padas ... ");
+					rotation_status = 2;
+				}
+
+				PX4_INFO("IN ROTATION:, spd: %f, integr: %f", (double) _rotation_speed, (double) rotation_integration);
+
 			} else {
-				rotation_integration -= (local_pos.heading - _last_heading);
-			}
-
-			if(rotation_integration > 1.2f){
-				PX4_INFO("!!!! Padas ... ");
-			}
-			PX4_INFO("IN ROTATION:, spd: %f, integr: %f", (double) _rotation_speed, (double) rotation_integration);
-		} else {
 				rotation_start = 0;
 				rotation_status = 0;
 				rotation_integration = 0;
-		}
+			}
 
 			_last_heading = local_pos.heading;
 			_last_timestamp = local_pos.timestamp;
 		}
+
+		spiral_status.rotation_angle = rotation_integration;
+		spiral_status.rotation_start = rotation_start;
+		spiral_status.rotation_time = hrt_elapsed_time(rotation_start);
+		_spiral_status_pub.publish(spiral_status);
 	}
 
 
 	// Example
 	//  publish some data
-	orb_test_s data{};
-	data.val = 314159;
-	data.timestamp = hrt_absolute_time();
-	_orb_test_pub.publish(data);
+	// orb_test_s data{};
+	// data.val = 314159;
+	// data.timestamp = hrt_absolute_time();
+	// _orb_test_pub.publish(data);
 
 
 	perf_end(_loop_perf);

@@ -706,6 +706,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				{events::Log::Critical, events::LogInternal::Info},
 				"Arming denied: throttle above center");
 				tune_negative(true);
+				PX4_INFO("Arming denied: throttle above center");
 				return TRANSITION_DENIED;
 			}
 
@@ -717,6 +718,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				{events::Log::Critical, events::LogInternal::Info},
 				"Arming denied: high throttle");
 				tune_negative(true);
+				PX4_INFO("Arming denied: high throttle");
 				return TRANSITION_DENIED;
 			}
 
@@ -728,6 +730,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			{events::Log::Critical, events::LogInternal::Info},
 			"Arming denied: switch to manual mode first");
 			tune_negative(true);
+			PX4_INFO("Arming denied: switch to manual mode first");
 			return TRANSITION_DENIED;
 		}
 
@@ -738,9 +741,24 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			{events::Log::Critical, events::LogInternal::Info},
 			"Arming denied: Geofence RTL requires valid home");
 			tune_negative(true);
+			PX4_INFO("Arming denied: Geofence RTL requires valid home");
 			return TRANSITION_DENIED;
 		}
+
+		if (_param_rwto_tkoff.get() && _param_ag_tkoff.get()) {
+			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Check takeoff parameters\t");
+			events::send(events::ID("commander_arm_denied_takeoff_parameters"),
+			{events::Log::Critical, events::LogInternal::Info},
+			"Arming denied: FW and AG takeoff eneabled together");
+			tune_negative(true);
+			PX4_INFO("Arming denied: FW and AG takeoff eneabled together");
+			return TRANSITION_DENIED;
+		}
+
 	}
+
+	PX4_INFO("SAFETY: %d", _safety.isSafetyOff());
+
 
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 					 _safety.isButtonAvailable(), _safety.isSafetyOff(),

@@ -99,3 +99,33 @@ PARAM_DEFINE_FLOAT(AG_ROTOR_RPM, 1000.0);
  * @value 10 Not implemented: SITL in flightgear
  */
 PARAM_DEFINE_INT32(AG_PROT_TYPE, 0);
+
+
+/**
+ * Altitude AGL at which we have enough ground clearance to allow some roll.
+ *
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 1
+ * @increment 1
+ * @group Autogyro
+ */
+PARAM_DEFINE_FLOAT(AG_NAV_ALT, 5.0);
+
+/**
+ * Max roll during climbout.
+ *
+ * Roll is limited during climbout to ensure enough lift and prevents aggressive
+ * navigation before we're on a safe height.
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 60.0
+ * @decimal 1
+ * @increment 0.5
+ * @group Autogyro
+ */
+
+PARAM_DEFINE_FLOAT(AG_TKO_MAX_ROLL, 25.0);

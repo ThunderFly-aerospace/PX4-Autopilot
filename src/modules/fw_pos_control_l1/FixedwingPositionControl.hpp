@@ -259,6 +259,7 @@ private:
 	double _current_longitude{0};
 	float _current_altitude{0.f};
 
+    float _roll{0.0f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
@@ -337,13 +338,11 @@ private:
 	// orbit to altitude only when the aircraft has entered the final *straight approach.
 	hrt_abstime _time_started_landing{0};
 
-<<<<<<< HEAD
 	// [m] lateral touchdown position offset manually commanded during landing
 	float _lateral_touchdown_position_offset{0.0f};
-=======
-	RunwayTakeoff _runway_takeoff;
+
 	AutogyroTakeoff _autogyro_takeoff;
->>>>>>> Autogyro takeoff, squash and clean
+
 
 	// [m] relative vector from land point to approach entrance (NE)
 	Vector2f _landing_approach_entrance_offset_vector{};
@@ -394,10 +393,7 @@ private:
 
 	float _groundspeed_undershoot{0.0f};			///< ground speed error to min. speed in m/s
 
-	float _roll{0.0f};
-	float _pitch{0.0f};
-	float _yaw{0.0f};
-	float _yawrate{0.0f};
+	
 
     // TECS
 	// total energy control system - airspeed / altitude control

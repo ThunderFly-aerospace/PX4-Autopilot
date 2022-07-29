@@ -118,7 +118,8 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				_time_in_state = now;
 			}
 
-			mavlink_log_info(mavlink_log_pub, "#Takeoff: minimal RPM for prerotator reached");
+			mavlink_log_info(mavlink_log_pub, "Takeoff: minimal RPM for prerotator reached");
+            //PX4_INFO("Takeoff: minimal RPM for prerotator reached");
 		}
 
 		break;
@@ -140,6 +141,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			_time_in_state = now;
 			play_next_tone();
 			mavlink_log_info(mavlink_log_pub, "Takeoff, prerotator RPM reached");
+            //PX4_INFO("Takeoff: prerotator RPM reached");
 		}
 
 		break;
@@ -156,7 +158,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 
 			if (rotor_rpm < _param_ag_rotor_flight_rpm.get()) {
 				ready_for_release = false;
-
+                //PX4_INFO("Takeofff, waiting for flight rpm.");
 				// Some histesis needs to be applied for the start interrupt procedure.
 				// Currently, this does not allow the start to be interrupted.
 				//_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
@@ -166,6 +168,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			// check minimal airspeed
 			if (airspeed < (_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) {
 				ready_for_release = false;
+                //PX4_INFO("Takeofff, waiting for min airspeed.");
 			}
 
 			if (ready_for_release) {
@@ -174,7 +177,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				_state = AutogyroTakeoffState::TAKEOFF_RELEASE;
 				_time_in_state = now;
 				mavlink_log_info(mavlink_log_pub, "Takeoff, Please release.");
-
+                //PX4_INFO("Takeoff, Please release.");
 				play_next_tone();
 			}
 
@@ -198,8 +201,9 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 				play_release_tone();
 			}
 
-			if (alt_agl > _param_rwto_nav_alt.get()) {
+			if (alt_agl > _param_ag_nav_alt.get()) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
+                PX4_INFO("Takeoff: Climbout.");
 				_state = AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
 				play_next_tone();
 				_time_in_state = now;
@@ -224,6 +228,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			_climbout = false;
 			_state = AutogyroTakeoffState::FLY;
 			_time_in_state = now;
+            PX4_INFO("Takeoff:FLY.");
 		}
 
 		//_climbout = false;
@@ -332,8 +337,8 @@ float AutogyroTakeoff::getRoll(float navigatorRoll)
 	// allow some limited roll during RELEASE and CLIMBOUT
 	else if (_state < AutogyroTakeoffState::FLY) {
 		return math::constrain(navigatorRoll,
-				       math::radians(-_param_rwto_max_roll.get()),
-				       math::radians(_param_rwto_max_roll.get()));
+				       math::radians(-_param_ag_tko_max_roll.get()),
+				       math::radians(_param_ag_tko_max_roll.get()));
 	}
 
 	return navigatorRoll;
@@ -368,7 +373,7 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 
 	float idle = (double)_param_fw_thr_idle.get();
 
-	PX4_INFO("GET THROTTLE %f, state: %f, time: %f", (double)idle, (double)_state, (double)(now - _time_in_state));
+	//PX4_INFO("GET THROTTLE %f, state: %f, time: %f", (double)idle, (double)_state, (double)(now - _time_in_state));
 
 	switch (_state) {
 
@@ -380,6 +385,7 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
 			if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
 				float throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
+                //PX4_INFO("Thortle: %f",(double)throttle);
 				return math::min(throttle, _param_rwto_max_thr.get());
 
 			} else {

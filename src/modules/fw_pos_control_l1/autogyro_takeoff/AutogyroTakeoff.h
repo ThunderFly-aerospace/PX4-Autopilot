@@ -147,11 +147,9 @@ private:
 		(ParamBool<px4::params::AG_TKOFF>) _param_ag_tkoff,
 		(ParamBool<px4::params::RWTO_TKOFF>) _param_rwto_tkoff,
 		(ParamInt<px4::params::RWTO_HDG>) _param_rwto_hdg,
-		(ParamFloat<px4::params::RWTO_NAV_ALT>) _param_rwto_nav_alt,
 		(ParamFloat<px4::params::RWTO_MAX_THR>) _param_rwto_max_thr,
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
 		(ParamFloat<px4::params::RWTO_MAX_PITCH>) _param_rwto_max_pitch,
-		(ParamFloat<px4::params::RWTO_MAX_ROLL>) _param_rwto_max_roll,
 		(ParamFloat<px4::params::RWTO_AIRSPD_SCL>) _param_rwto_airspd_scl,
 		(ParamFloat<px4::params::RWTO_RAMP_TIME>) _param_rwto_ramp_time,
 
@@ -164,7 +162,10 @@ private:
 		(ParamFloat<px4::params::AG_PROT_MIN_RPM>) _param_ag_prerotator_minimal_rpm,
 		(ParamFloat<px4::params::AG_PROT_TRG_RPM>) _param_ag_prerotator_target_rpm,
 		(ParamFloat<px4::params::AG_ROTOR_RPM>) _param_ag_rotor_flight_rpm,
-		(ParamInt<px4::params::AG_PROT_TYPE>) _param_ag_prerotator_type
+		(ParamInt<px4::params::AG_PROT_TYPE>) _param_ag_prerotator_type,
+
+		(ParamFloat<px4::params::AG_NAV_ALT>) _param_ag_nav_alt,
+        (ParamFloat<px4::params::AG_TKO_MAX_ROLL>)  _param_ag_tko_max_roll
 
 
 	)

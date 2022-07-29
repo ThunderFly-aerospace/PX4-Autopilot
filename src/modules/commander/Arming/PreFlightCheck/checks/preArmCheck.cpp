@@ -252,19 +252,5 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		PX4_INFO("PREARM ERR");
 	}
 
-
-	int32_t param_rwto_tkoff{0};
-	param_get(param_find("RWTO_TKOFF"), &param_rwto_tkoff);
-	int32_t param_ag_tkoff{0};
-	param_get(param_find("AG_TKOFF"), &param_ag_tkoff);
-
-	if (param_rwto_tkoff && param_ag_tkoff) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Arming denied, FW and AG takeoff eneabled together");
-		}
-		prearm_ok = false;
-	}
-
-
 	return prearm_ok;
 }

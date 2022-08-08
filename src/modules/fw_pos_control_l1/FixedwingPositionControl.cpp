@@ -1480,10 +1480,10 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_att_sp.roll_reset_integral = _autogyro_takeoff.resetIntegrators();
 		_att_sp.pitch_reset_integral = _autogyro_takeoff.resetIntegrators();
 
-	} 
+	}
 
 /////////////////////////////////////////////////////////////RUNWAY
-else if (_runway_takeoff.runwayTakeoffEnabled()) {
+	else if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
 			_runway_takeoff.init(now, _yaw, global_position);
 
@@ -1601,10 +1601,10 @@ else if (_runway_takeoff.runwayTakeoffEnabled()) {
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_TAKEOFF;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
-	} 
+	}
 
 ///////////LOUNCH
-else {
+	else {
 		/* Perform launch detection */
 		if (!_skipping_takeoff_detection && _launchDetector.launchDetectionEnabled() &&
 		    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
@@ -2468,7 +2468,7 @@ FixedwingPositionControl::reset_takeoff_state()
 	_runway_takeoff.reset();
 
 
-    _runway_takeoff.reset();
+	_runway_takeoff.reset();
 	_autogyro_takeoff.reset();
 	_launchDetector.reset();
 	_launch_detection_state = LAUNCHDETECTION_RES_NONE;

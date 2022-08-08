@@ -80,6 +80,14 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	_climbout = true;
 	takeoff_status_s takeoff_status = {};
 
+
+	actuator_armed_s actuator_armed;
+	_actuator_armed_sub.update(&actuator_armed)
+
+	if (actuator_armed.manual_lockdown && _state <= AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP) {
+		_state = AutogyroTakeoffState::TAKEOFF_ERROR;
+	}
+
 	switch (_state) {
 	/*
 	    Hangling error states of takeoff mode. Should lead in allerting operator and/or
@@ -87,9 +95,12 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 
 	    IN: error state
 	*/
-	case AutogyroTakeoffState::TAKEOFF_ERROR:
-		PX4_INFO("ERR STATE");
-		mavlink_log_info(mavlink_log_pub, "#Takeoff: Error state");
+	case AutogyroTakeoffState::TAKEOFF_ERROR: {
+			if (_state != _state_last) {
+				PX4_INFO("ERR STATE");
+				mavlink_log_info(mavlink_log_pub, "#Takeoff: Error state");
+			}
+		}
 		break;
 
 
@@ -119,7 +130,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			}
 
 			mavlink_log_info(mavlink_log_pub, "Takeoff: minimal RPM for prerotator reached");
-            //PX4_INFO("Takeoff: minimal RPM for prerotator reached");
+			//PX4_INFO("Takeoff: minimal RPM for prerotator reached");
 		}
 
 		break;
@@ -141,14 +152,14 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			_time_in_state = now;
 			play_next_tone();
 			mavlink_log_info(mavlink_log_pub, "Takeoff, prerotator RPM reached");
-            //PX4_INFO("Takeoff: prerotator RPM reached");
+			//PX4_INFO("Takeoff: prerotator RPM reached");
 		}
 
 		break;
 
 	/*
-	    All required takeoff conditions are satisfied. Now it is prepared to start.
-	    Try to start main motor. Slowly rump up and check it.
+	    All required takeoff conditions are satisfied. Now it is prepared to
+	    try to start main motor.
 
 	    IN: rotor prepared;
 	    OUT: rotor prepared; minimal airspeed; motor max power,
@@ -158,29 +169,72 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 
 			if (rotor_rpm < _param_ag_rotor_flight_rpm.get()) {
 				ready_for_release = false;
-                //PX4_INFO("Takeofff, waiting for flight rpm.");
+				//PX4_INFO("Takeofff, waiting for flight rpm.");
 				// Some histesis needs to be applied for the start interrupt procedure.
 				// Currently, this does not allow the start to be interrupted.
 				//_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
-				_time_in_state = now;
+				//_time_in_state = now;
 			}
 
 			// check minimal airspeed
 			if (airspeed < (_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) {
 				ready_for_release = false;
-                //PX4_INFO("Takeofff, waiting for min airspeed.");
+				//PX4_INFO("Takeofff, waiting for min airspeed.");
 			}
 
 			if (ready_for_release) {
 				_init_yaw = get_bearing_to_next_waypoint(_initial_wp(0), _initial_wp(1), current_lat, current_lon);
 
-				_state = AutogyroTakeoffState::TAKEOFF_RELEASE;
+				_state = AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP;
 				_time_in_state = now;
-				mavlink_log_info(mavlink_log_pub, "Takeoff, Please release.");
-                //PX4_INFO("Takeoff, Please release.");
+				mavlink_log_info(mavlink_log_pub, "Ready to start motor");
+				//PX4_INFO("Takeoff, Please release.");
 				play_next_tone();
 			}
 
+		}
+		break;
+
+	/*
+	    Slowly rampup motor. Keep trying to check other flight parameters.
+	    If I can still fly
+	*/
+	case AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP: {
+			bool ready_for_release = true;
+
+			if (rotor_rpm < _param_ag_rotor_flight_rpm.get()) {
+				ready_for_release = false;
+				//PX4_INFO("Takeofff, waiting for flight rpm.");
+				// Some histesis needs to be applied for the start interrupt procedure.
+				// Currently, this does not allow the start to be interrupted.
+				//_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
+				//_time_in_state = now;
+			}
+
+			// check minimal airspeed
+			if (airspeed < (_param_fw_airspd_min.get() * _param_rwto_airspd_scl.get())) {
+				ready_for_release = false;
+				//PX4_INFO("Takeofff, waiting for min airspeed.");
+			}
+
+			// ramup time elapsed
+			if (hrt_elapsed_time(&_time_in_state) < (_param_rwto_ramp_time.get() * 1_s)) {
+				ready_for_release = false;
+			}
+
+			// Check if motor/esc power (properller RPM) is suffiscient
+			// TODO
+			if (false) {
+				ready_for_release = false;
+			}
+
+			if (ready_for_release) {
+
+				_state = AutogyroTakeoffState::TAKEOFF_RELEASE;
+				_time_in_state = now;
+				PX4_INFO("Takeoff, Please release.");
+				play_next_tone();
+			}
 		}
 		break;
 
@@ -203,7 +257,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 
 			if (alt_agl > _param_ag_nav_alt.get()) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
-                PX4_INFO("Takeoff: Climbout.");
+				PX4_INFO("Takeoff: Climbout.");
 				_state = AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
 				play_next_tone();
 				_time_in_state = now;
@@ -228,7 +282,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			_climbout = false;
 			_state = AutogyroTakeoffState::FLY;
 			_time_in_state = now;
-            PX4_INFO("Takeoff:FLY.");
+			PX4_INFO("Takeoff:FLY.");
 		}
 
 		//_climbout = false;
@@ -385,7 +439,7 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
 			if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
 				float throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
-                //PX4_INFO("Thortle: %f",(double)throttle);
+				//PX4_INFO("Thortle: %f",(double)throttle);
 				return math::min(throttle, _param_rwto_max_thr.get());
 
 			} else {

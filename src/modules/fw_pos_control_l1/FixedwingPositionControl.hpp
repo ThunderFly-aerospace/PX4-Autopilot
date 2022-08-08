@@ -259,7 +259,7 @@ private:
 	double _current_longitude{0};
 	float _current_altitude{0.f};
 
-    float _roll{0.0f};
+	float _roll{0.0f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
@@ -393,9 +393,9 @@ private:
 
 	float _groundspeed_undershoot{0.0f};			///< ground speed error to min. speed in m/s
 
-	
 
-    // TECS
+
+	// TECS
 	// total energy control system - airspeed / altitude control
 	TECS _tecs;
 

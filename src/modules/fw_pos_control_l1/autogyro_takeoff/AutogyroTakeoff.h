@@ -54,6 +54,7 @@
 #include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/tune_control.h>
+#include <uORB/topics/actuator_armed.h>
 
 namespace autogyrotakeoff
 {
@@ -63,9 +64,10 @@ enum AutogyroTakeoffState {
 	TAKEOFF_ERROR = -1,
 	PRE_TAKEOFF_PREROTATE_START = 0, /**< Wait for manual rotor prerotation or for some other trigger */
 	PRE_TAKEOFF_PREROTATE = 1, /**< Start prerotation of rotor controlled from AP or prerotation with some movement */
-	PRE_TAKEOFF_DONE = 2, /**< autogyro conditions are OK for takeoff, rampup motor */
-	TAKEOFF_RELEASE = 3, /**< command for release */
-	TAKEOFF_CLIMBOUT = 4, /**< Climbout for minimal altitude */
+	PRE_TAKEOFF_DONE = 2, /**< autogyro conditions are OK for takeoff*/
+	PRE_TAKEOFF_RAMPUP = 3, /**< Get ready to takeoff, rampup motor */
+	TAKEOFF_RELEASE = 4, /**< command for release */
+	TAKEOFF_CLIMBOUT = 5, /**< Climbout for minimal altitude */
 	FLY /**< fly to next waypoint */
 };
 
@@ -115,6 +117,7 @@ public:
 
 	void reset();
 
+	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 
 	void play_next_tone();
 	void play_release_tone();
@@ -165,7 +168,7 @@ private:
 		(ParamInt<px4::params::AG_PROT_TYPE>) _param_ag_prerotator_type,
 
 		(ParamFloat<px4::params::AG_NAV_ALT>) _param_ag_nav_alt,
-        (ParamFloat<px4::params::AG_TKO_MAX_ROLL>)  _param_ag_tko_max_roll
+		(ParamFloat<px4::params::AG_TKO_MAX_ROLL>)  _param_ag_tko_max_roll
 
 
 	)

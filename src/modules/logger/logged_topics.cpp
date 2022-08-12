@@ -373,6 +373,7 @@ void LoggedTopics::add_system_identification_topics()
 void LoggedTopics::add_mavlink_tunnel()
 {
 	add_topic("mavlink_tunnel");
+	add_topic("spiral_status");
 }
 
 int LoggedTopics::add_topics_from_file(const char *fname)

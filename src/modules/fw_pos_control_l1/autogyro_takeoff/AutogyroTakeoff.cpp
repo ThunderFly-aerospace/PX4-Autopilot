@@ -80,9 +80,8 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	_climbout = true;
 	takeoff_status_s takeoff_status = {};
 
-
 	actuator_armed_s actuator_armed;
-	_actuator_armed_sub.update(&actuator_armed)
+	_actuator_armed_sub.update(&actuator_armed);
 
 	if (actuator_armed.manual_lockdown && _state <= AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP) {
 		_state = AutogyroTakeoffState::TAKEOFF_ERROR;
@@ -102,7 +101,6 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			}
 		}
 		break;
-
 
 	/*
 	    Initial state of regulator, wait for manual prerotate of rotor.
@@ -337,6 +335,7 @@ float AutogyroTakeoff::getRequestedAirspeed()
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START:
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE:
+	case AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP:
 		return _param_fw_airspd_min.get() * _param_rwto_airspd_scl.get();
 
 	default:
@@ -369,6 +368,7 @@ float AutogyroTakeoff::getPitch(float tecsPitch)
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE_START: // 0 Null pitch
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:   // 1 maximal pitch
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: // 2
+	case AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP:
 		//return math::radians(_param_rwto_max_pitch.get());
 		return math::radians(_param_rwto_psp.get());
 
@@ -447,6 +447,19 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 			}
 		}
 
+	case AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP: {
+		float throttle = idle;
+
+		if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
+			throttle = _param_rwto_max_thr.get();
+		} else if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_PLATFORM) {
+			throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
+			throttle = math::min(throttle, _param_rwto_max_thr.get());
+		}
+
+		return throttle;
+	}
+
 
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
 			float throttle = idle;
@@ -455,8 +468,7 @@ float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 				throttle = _param_rwto_max_thr.get();
 
 			} else if (_param_ag_prerotator_type.get() == AutogyroTakeoffType::WOPREROT_PLATFORM) {
-				throttle = ((now - _time_in_state) / (_param_rwto_ramp_time.get() * 1_s)) * _param_rwto_max_thr.get();
-				throttle = math::min(throttle, _param_rwto_max_thr.get());
+				throttle = _param_rwto_max_thr.get();
 			}
 
 			return math::min(throttle, _param_rwto_max_thr.get());

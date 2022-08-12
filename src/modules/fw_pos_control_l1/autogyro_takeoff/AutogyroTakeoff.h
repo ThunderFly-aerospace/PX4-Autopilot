@@ -50,6 +50,7 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/debug_value.h>
@@ -117,7 +118,7 @@ public:
 
 	void reset();
 
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	void play_next_tone();
 	void play_release_tone();

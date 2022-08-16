@@ -413,6 +413,13 @@ PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
 PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
 
 /**
+ * Landing type
+ *
+ * @group Landing
+ */
+PARAM_DEFINE_INT32(FW_LND_TYPE, 1);
+
+/**
  * Minimum pitch during takeoff.
  *
  * @unit deg

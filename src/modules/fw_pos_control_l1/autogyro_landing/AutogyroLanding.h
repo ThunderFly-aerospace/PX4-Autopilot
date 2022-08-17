@@ -103,8 +103,8 @@ public:
 	float getTargetBearing() {return 180.0;}
 	void reset();
 
-	matrix::Vector2d _initial_wp;
-	matrix::Vector2d _approach_wp;
+	matrix::Vector2f _initial_wp;
+	matrix::Vector2f _approach_wp;
 
 private:
 	/** state variables **/

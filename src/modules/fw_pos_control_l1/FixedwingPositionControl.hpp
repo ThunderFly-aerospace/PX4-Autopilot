@@ -92,6 +92,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/rpm.h>
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/uORB.h>
@@ -162,6 +163,7 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
 
 	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
 	uORB::Publication<vehicle_local_position_setpoint_s> 	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	///< vehicle local position setpoint publication
@@ -211,6 +213,8 @@ private:
 	bool _land_motor_lim{false};
 	bool _land_onslope{false};
 	bool _land_abort{false};
+
+	float _rotor_rpm = 0;
 
 	Landingslope _landingslope;
 
@@ -308,6 +312,7 @@ private:
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
 	void        wind_poll();
+	void        rpm_poll();
 
 	void		status_publish();
 	void		landing_status_publish();

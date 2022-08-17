@@ -51,4 +51,6 @@ px4_add_module(
 		SlewRate
 		tecs
 		motion_planning
+	COMPILE_FLAGS
+		-Wno-error
 	)

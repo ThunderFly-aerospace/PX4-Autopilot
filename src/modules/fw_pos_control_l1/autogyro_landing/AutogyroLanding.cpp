@@ -92,8 +92,8 @@ void AutogyroLanding::init(const hrt_abstime &now, float yaw, double current_lat
 void AutogyroLanding::update(const hrt_abstime &now, float airspeed, float rotor_rpm, float alt_agl,
 			     double current_lat, double current_lon, orb_advert_t *mavlink_log_pub, ECL_L1_Pos_Controller *l1_control)
 {
-	float distance = 0;
-	float distance_z = 0;
+	float distance = 0;	 // distance to landing target
+	float distance_z = 0; // get altitude above landing target
 	get_distance_to_point_global_wgs84(current_lat, current_lon, alt_agl, _initial_wp(0), _initial_wp(1), alt_agl,
 					   &distance, &distance_z);
 
@@ -135,9 +135,18 @@ void AutogyroLanding::update(const hrt_abstime &now, float airspeed, float rotor
 
 		break;
 
-	case AutogyroLandingState::LANDING_BREAK:
+	case AutogyroLandingState::LANDING_BREAK: {
+			_l1_control.navigate_heading(_autogyro_landing.getTargetBearing(), _yaw, ground_speed);
+			altitude_desired = terrain_alt + 0;
+			hgt_rate_sp = 0;
+			target_airspeed = 0;
+			thr_max = 0.0;
 
-		break;
+			_att_sp.yaw_body = _target_bearing;
+			_att_sp.fw_control_yaw = true;
+
+			break;
+		}
 
 
 	case AutogyroLandingState::LANDING_TOUCH:

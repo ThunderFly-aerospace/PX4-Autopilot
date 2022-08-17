@@ -320,6 +320,19 @@ FixedwingPositionControl::wind_poll()
 	}
 }
 
+
+void
+FixedwingPositionControl::rpm_poll()
+{
+	if (_rpm_sub.updated()) {
+		rpm_s rpm;
+		_rpm_sub.update(&rpm);
+
+		_rotor_rpm = rpm.indicated_frequency_rpm;
+
+	}
+}
+
 void
 FixedwingPositionControl::manual_control_setpoint_poll()
 {
@@ -1771,10 +1784,10 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 
 
-		const float bearing_airplane_currwp = get_bearing_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1),
+		const float bearing_autogyro_currwp = get_bearing_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1),
 						      (double)curr_wp(0), (double)curr_wp(1));
 
-		float bearing_lastwp_currwp = bearing_airplane_currwp;
+		float bearing_lastwp_currwp = bearing_autogyro_currwp;
 
 		if (pos_sp_prev.valid) {
 			bearing_lastwp_currwp = get_bearing_to_next_waypoint((double)prev_wp(0), (double)prev_wp(1), (double)curr_wp(0),
@@ -1789,7 +1802,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
 		float wp_distance_save = wp_distance;
 
-		if (fabsf(wrap_pi(bearing_airplane_currwp - bearing_lastwp_currwp)) >= radians(90.0f)) {
+		if (fabsf(wrap_pi(bearing_autogyro_currwp - bearing_lastwp_currwp)) >= radians(90.0f)) {
 			wp_distance_save = 0.0f;
 		}
 
@@ -1823,7 +1836,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 			_land_noreturn_horizontal = true;
 			mavlink_log_info(&_mavlink_log_pub, "Landing, heading hold\t");
-			events::send(events::ID("fixedwing_position_control_landing"), events::Log::Info, "Landing, heading hold");
+			events::send(events::ID("autogyro_position_control_landing"), events::Log::Info, "Landing, heading hold");
 		}
 
 		/* Vertical landing control */
@@ -1859,7 +1872,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 			}
 
 			float flare_curve_alt_rel = _landingslope.getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp,
-						    bearing_airplane_currwp);
+						    bearing_autogyro_currwp);
 
 			/* avoid climbout */
 			if ((_flare_curve_alt_rel_last < flare_curve_alt_rel && _land_noreturn_vertical) || _land_stayonground) {
@@ -1883,7 +1896,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 				} else {
 					// normal navigation
-					_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
+					_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 				}
 
 				target_airspeed = _npfg.getAirspeedRef() /  _eas2tas;
@@ -1955,7 +1968,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 			float altitude_desired = terrain_alt;
 
 			const float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance,
-					bearing_lastwp_currwp, bearing_airplane_currwp);
+					bearing_lastwp_currwp, bearing_autogyro_currwp);
 
 			if (_current_altitude > terrain_alt + landing_slope_alt_rel_desired || _land_onslope) {
 				/* stay on slope */
@@ -1991,7 +2004,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 				} else {
 					// normal navigation
-					_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
+					_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 				}
 
 				target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
@@ -2004,7 +2017,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 				} else {
 					// normal navigation
-					_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
+					_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 				}
 
 				_att_sp.roll_body = _l1_control.get_roll_setpoint();
@@ -2037,83 +2050,123 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		float altitude_desired = terrain_alt + 50;
 		float hgt_rate_sp = NAN;
 
-	} else {
-		// normal navigation
-		_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+		float thr_min = _param_fw_thr_min.get();
+		float thr_max = _param_fw_thr_max.get();
+		float thr_idle = _param_fw_thr_cruise.get();
+
+		float pitch_min = radians(_param_fw_p_lim_min.get());
+		float pitch_max = radians(_param_fw_p_lim_max.get());
+
+		_target_bearing = 180;
+		_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+
+		switch (_autogyro_landing.getState()) {
+		case AutogyroLandingState::LANDING_INITIAL_POSITION: {
+
+				target_airspeed = get_auto_airspeed_setpoint(now, _param_fw_airspd_trim.get(), ground_speed, dt);
+
+				// if (_param_fw_use_npfg.get()) {
+				// 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+				// 	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+				//
+				// 	// normal navigation
+				// 	_npfg.navigateWaypoints(_autogyro_landing._initial_wp, _autogyro_landing._approach_wp, curr_pos_local, ground_speed, _wind_vel);
+				//
+				// 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+				// 	_att_sp.roll_body = _npfg.getRollSetpoint();
+				//
+				// } else {
+				// normal navigation
+				//_l1_control.navigate_loiter(_autogyro_landing._approach_wp, curr_pos, 50, 1, get_nav_speed_2d(ground_speed));
+				_l1_control.navigate_waypoints(_autogyro_landing._initial_wp, _autogyro_landing._approach_wp, curr_pos_local,
+							       ground_speed);
+
+				_att_sp.roll_body = _l1_control.get_roll_setpoint();
+				altitude_desired = terrain_alt + 70;
+
+
+				//}
+			}
+			break;
+
+		case AutogyroLandingState::LANDING_APPROACH: {
+				PX4_INFO("APPROACH");
+				_l1_control.navigate_waypoints(_autogyro_landing._approach_wp, _autogyro_landing._initial_wp, curr_pos_local,
+							       ground_speed);
+				altitude_desired = terrain_alt + 70;
+
+			}
+			break;
+
+		case AutogyroLandingState::LANDING_DESCEND: {
+				_l1_control.navigate_heading(_autogyro_landing.getTargetBearing(), _yaw, ground_speed);
+				altitude_desired = terrain_alt + 0;
+				hgt_rate_sp = -30;
+				thr_min = 0.6;
+				target_airspeed = 30;
+
+				//pitch_min = radians(-35);
+
+				_att_sp.yaw_body = _target_bearing;
+				_att_sp.fw_control_yaw = true;
+				break;
+			}
+
+		case AutogyroLandingState::LANDING_BREAK: {
+				_l1_control.navigate_heading(_autogyro_landing.getTargetBearing(), _yaw, ground_speed);
+				altitude_desired = terrain_alt + 0;
+				hgt_rate_sp = 0;
+				target_airspeed = 0;
+				thr_max = 0.0;
+
+				_att_sp.yaw_body = _target_bearing;
+				_att_sp.fw_control_yaw = true;
+
+				break;
+			}
+
+		default:
+			break;
+		}
+
+		// altitude_desired =
+		// hgt_rate_sp =
+		// target_airspeed =
+		// thr_max =
+		//
+		// _att_sp.yaw_body = _target_bearing;
+		// _att_sp.fw_control_yaw = true;
+
+		_att_sp.roll_body = _l1_control.get_roll_setpoint();
+		//PX4_INFO("ALTITUDE %f %f", (double) altitude_desired, (double) _current_altitude);
+		// tecs_update_pitch_throttle(now, altitude_desired, target_airspeed,
+		// 			   radians(_param_fw_p_lim_min.get()), radians(_param_fw_p_lim_max.get()),
+		// 			   _param_fw_thr_min.get(),_param_fw_thr_max.get(), _param_fw_thr_cruise.get(),
+		// 			   false, // climbout mode
+		// 			   radians(_param_fw_p_lim_min.get())); // climbout pitch_min_rad
+		// 			   true,
+		// 			   (float) hgt_rate_sp);
+
+		tecs_update_pitch_throttle(now, altitude_desired,
+					   target_airspeed,
+					   pitch_min, //radians(_param_fw_p_lim_min.get()),
+					   pitch_max, //radians(_param_fw_p_lim_max.get()),
+					   thr_min, //_param_fw_thr_min.get(),
+					   thr_max, //_param_fw_thr_max.get(),
+					   thr_idle, //_param_fw_thr_cruise.get(),
+					   false,
+					   NAN, // climbout pitch_min
+					   true,
+					   hgt_rate_sp);
+
+
+
+		//_att_sp.thrust_body[0] = get_tecs_thrust();
+		_att_sp.pitch_body = get_tecs_pitch();
+
+
+
 	}
-
-	break;
-
-case AutogyroLandingState::LANDING_APPROACH: {
-		PX4_INFO("APPROACH");
-		_l1_control.navigate_waypoints(_autogyro_landing._approach_wp, _autogyro_landing._initial_wp, curr_pos, ground_speed);
-		altitude_desired = terrain_alt + 70;
-
-	}
-	break;
-
-} else
-{
-	// normal navigation
-	_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
-}
-
-case AutogyroLandingState::LANDING_BREAK:
-{
-	_l1_control.navigate_heading(_autogyro_landing.getTargetBearing(), _yaw, ground_speed);
-	altitude_desired = terrain_alt + 0;
-	hgt_rate_sp = 0;
-	target_airspeed = 0;
-	thr_max = 0.0;
-
-	_att_sp.yaw_body = _target_bearing;
-	_att_sp.fw_control_yaw = true;
-
-	break;
-}
-
-default:
-break;
-}
-
-// altitude_desired =
-// hgt_rate_sp =
-// target_airspeed =
-// thr_max =
-//
-// _att_sp.yaw_body = _target_bearing;
-// _att_sp.fw_control_yaw = true;
-
-_att_sp.roll_body = _l1_control.get_roll_setpoint();
-//PX4_INFO("ALTITUDE %f %f", (double) altitude_desired, (double) _current_altitude);
-// tecs_update_pitch_throttle(now, altitude_desired, target_airspeed,
-// 			   radians(_param_fw_p_lim_min.get()), radians(_param_fw_p_lim_max.get()),
-// 			   _param_fw_thr_min.get(),_param_fw_thr_max.get(), _param_fw_thr_cruise.get(),
-// 			   false, // climbout mode
-// 			   radians(_param_fw_p_lim_min.get())); // climbout pitch_min_rad
-// 			   true,
-// 			   (float) hgt_rate_sp);
-
-tecs_update_pitch_throttle(now, altitude_desired,
-			   target_airspeed,
-			   pitch_min, //radians(_param_fw_p_lim_min.get()),
-			   pitch_max, //radians(_param_fw_p_lim_max.get()),
-			   thr_min, //_param_fw_thr_min.get(),
-			   thr_max, //_param_fw_thr_max.get(),
-			   thr_idle, //_param_fw_thr_cruise.get(),
-			   false,
-			   NAN, // climbout pitch_min
-			   true,
-			   hgt_rate_sp);
-
-
-
-//_att_sp.thrust_body[0] = get_tecs_thrust();
-_att_sp.pitch_body = get_tecs_pitch();
-
-
-
-}
 }
 
 void
@@ -2482,6 +2535,7 @@ FixedwingPositionControl::Run()
 		vehicle_command_poll();
 		vehicle_control_mode_poll();
 		wind_poll();
+		rpm_poll();
 
 		if (_vehicle_land_detected_sub.updated()) {
 			vehicle_land_detected_s vehicle_land_detected;

@@ -216,7 +216,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 			}
 
 			// ramup time elapsed
-			if (hrt_elapsed_time(&_time_in_state) < (_param_rwto_ramp_time.get() * 1_s * 1.5)) {
+			if (hrt_elapsed_time(&_time_in_state) < (_param_rwto_ramp_time.get() * 1_s * 1.5f)) {
 				ready_for_release = false;
 			}
 

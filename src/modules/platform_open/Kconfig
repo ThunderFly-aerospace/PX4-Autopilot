@@ -1,0 +1,5 @@
+menuconfig MODULES_PLATFORM_OPEN
+	bool "platfor_open"
+	default n
+	---help---
+		Open thunderfly Starting platform

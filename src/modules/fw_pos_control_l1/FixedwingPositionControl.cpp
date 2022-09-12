@@ -54,7 +54,8 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_launchDetector(this),
-	_runway_takeoff(this)
+	_runway_takeoff(this),
+	_autogyro_takeoff(this)
 {
 	if (vtol) {
 		_param_handle_airspeed_trans = param_find("VT_ARSP_TRANS");
@@ -337,6 +338,14 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 	}
 }
 
+void
+FixedwingPositionControl::rpm_poll()
+{
+	if (_rpm_sub.update(&_rpm)) {
+		_rpm_sub.copy(&_rpm);
+		_rotor_rpm = _rpm.indicated_frequency_rpm;
+	}
+}
 
 void
 FixedwingPositionControl::vehicle_attitude_poll()
@@ -724,6 +733,7 @@ FixedwingPositionControl::getManualHeightRateSetpoint()
 	return height_rate_setpoint;
 }
 
+//TADY/////////////////////////////////////////////////////////////////////////////////////////////////TADY
 void
 FixedwingPositionControl::updateManualTakeoffStatus()
 {
@@ -1384,7 +1394,88 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	Vector2f local_2D_position{_local_pos.x, _local_pos.y};
 
-	if (_runway_takeoff.runwayTakeoffEnabled()) {
+	if (_autogyro_takeoff.autogyroTakeoffEnabled()) {
+		if (!_autogyro_takeoff.isInitialized()) {
+			_autogyro_takeoff.init(now, _yaw, _current_latitude, _current_longitude);
+
+			/* need this already before takeoff is detected
+			 * doesn't matter if it gets reset when takeoff is detected eventually */
+			_takeoff_ground_alt = _current_altitude;
+			mavlink_log_info(&_mavlink_log_pub, "Autogyro takeoff started");
+		}
+
+		if (_autogyro_takeoff.resetAltTakeoff()) {
+			_takeoff_ground_alt = _current_altitude;
+		}
+
+		//float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
+
+		// update autogyro takeoff helper
+		_autogyro_takeoff.update(now, _airspeed, _rotor_rpm, _current_altitude - _takeoff_ground_alt,
+					 _current_latitude, _current_longitude, &_mavlink_log_pub);
+
+		const float takeoff_airspeed = _runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get();
+		float adjusted_min_airspeed = _param_fw_airspd_min.get();
+
+		if (takeoff_airspeed < _param_fw_airspd_min.get()) {
+			// adjust underspeed detection bounds for takeoff airspeed
+			_tecs.set_equivalent_airspeed_min(takeoff_airspeed);
+			adjusted_min_airspeed = takeoff_airspeed;
+		}
+
+		float target_airspeed = get_auto_airspeed_setpoint(control_interval, takeoff_airspeed, adjusted_min_airspeed,
+					ground_speed);
+
+
+		const Vector2f start_pos_local = _global_local_proj_ref.project(_runway_takeoff.getStartPosition()(0),
+						 _runway_takeoff.getStartPosition()(1));
+		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+		// the bearing from runway start to the takeoff waypoint is followed until the clearance altitude is exceeded
+		const Vector2f takeoff_bearing_vector = calculateTakeoffBearingVector(start_pos_local, takeoff_waypoint_local);
+
+
+		if (_param_fw_use_npfg.get()) {
+			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+			_npfg.navigatePathTangent(local_2D_position, start_pos_local, takeoff_bearing_vector, ground_speed,
+						  _wind_vel, 0.0f);
+
+			_att_sp.roll_body = _autogyro_takeoff.getRoll(_npfg.getRollSetpoint());
+			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+
+		} else {
+			const Vector2f virtual_waypoint = start_pos_local + takeoff_bearing_vector * HDG_HOLD_DIST_NEXT;
+			_l1_control.navigate_waypoints(start_pos_local, virtual_waypoint, local_2D_position, ground_speed);
+			_att_sp.roll_body = _autogyro_takeoff.getRoll(_l1_control.get_roll_setpoint());
+		}
+
+		_att_sp.yaw_body = _autogyro_takeoff.getYaw(_yaw);
+
+		// update tecs
+		const float takeoff_pitch_max_deg = _autogyro_takeoff.getMaxPitch(_param_fw_p_lim_max.get());
+
+		tecs_update_pitch_throttle(now, pos_sp_curr.alt,
+					   target_airspeed,
+					   radians(_param_fw_p_lim_min.get()),
+					   radians(takeoff_pitch_max_deg),
+					   _param_fw_thr_min.get(),
+					   _param_fw_thr_max.get(), // XXX should we also set autogyro_takeoff_throttle here?
+					   _autogyro_takeoff.climbout(),
+					   radians(_autogyro_takeoff.getMinPitch(_takeoff_pitch_min.get(), _param_fw_p_lim_min.get())),
+					   tecs_status_s::TECS_MODE_TAKEOFF);
+
+		// assign values
+		_att_sp.fw_control_yaw = _autogyro_takeoff.controlYaw();
+		_att_sp.pitch_body = _autogyro_takeoff.getPitch(get_tecs_pitch());
+
+		// reset integrals except yaw (which also counts for the wheel controller)
+		_att_sp.reset_rate_integrals = _autogyro_takeoff.resetIntegrators();
+
+	}
+
+/////////////////////////////////////////////////////////////RUNWAY
+	else if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
 			_runway_takeoff.init(now, _yaw, global_position);
 
@@ -1501,7 +1592,10 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_TAKEOFF;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
-	} else {
+	}
+
+///////////LOUNCH
+	else {
 		/* Perform launch detection */
 		if (!_skipping_takeoff_detection && _launchDetector.launchDetectionEnabled() &&
 		    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
@@ -1627,6 +1721,33 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 	}
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, _takeoff_ground_alt);
+
+	if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS && !_runway_takeoff.runwayTakeoffEnabled()
+	    && !_autogyro_takeoff.autogyroTakeoffEnabled()) {
+
+		/* making sure again that the correct thrust is used,
+		 * without depending on library calls for safety reasons.
+		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
+		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
+
+	} else if (_runway_takeoff.runwayTakeoffEnabled()) {
+
+		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
+
+	} else if (_autogyro_takeoff.autogyroTakeoffEnabled()) {
+		//PX4_INFO("Spoustim GETTHROTTLE");
+		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(now, get_tecs_thrust());
+
+	} else {
+		/* Copy thrust and pitch values from tecs */
+		// when we are landed state we want the motor to spin at idle speed
+		_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
+	}
+
+	// only use TECS pitch setpoint if launch has not been detected and runway takeoff is not enabled
+	if (!(_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled())) {
+		_att_sp.pitch_body = get_tecs_pitch();
+	}
 
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
@@ -2178,6 +2299,7 @@ FixedwingPositionControl::Run()
 		}
 
 		airspeed_poll();
+		rpm_poll();
 		manual_control_setpoint_poll();
 		vehicle_attitude_poll();
 		vehicle_command_poll();
@@ -2331,6 +2453,9 @@ FixedwingPositionControl::reset_takeoff_state()
 {
 	_runway_takeoff.reset();
 
+
+	_runway_takeoff.reset();
+	_autogyro_takeoff.reset();
 	_launchDetector.reset();
 	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
 	_last_time_launch_detection_notified = 0;

@@ -96,7 +96,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);
 	add_topic("system_power", 500);
-	add_optional_topic("takeoff_status", 1000);
+	add_topic("takeoff_status");
 	add_optional_topic("tecs_status", 200);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("transponder_report");

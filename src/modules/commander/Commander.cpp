@@ -661,6 +661,15 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			tune_negative(true);
 			return TRANSITION_DENIED;
 		}
+
+		if (_param_rwto_tkoff.get() && _param_ag_tkoff.get()) {
+			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Check takeoff parameters\t");
+			events::send(events::ID("commander_arm_denied_takeoff_parameters"),
+			{events::Log::Critical, events::LogInternal::Info},
+			"Arming denied: FW and AG takeoff eneabled together");
+			tune_negative(true);
+			return TRANSITION_DENIED;
+		}
 	}
 
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status,

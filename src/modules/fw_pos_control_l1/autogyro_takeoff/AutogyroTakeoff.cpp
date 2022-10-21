@@ -83,7 +83,7 @@ void AutogyroTakeoff::update(const hrt_abstime &now, float airspeed, float rotor
 	actuator_armed_s actuator_armed;
 	_actuator_armed_sub.update(&actuator_armed);
 
-	if (actuator_armed.manual_lockdown && _state <= AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP) {
+	if (!actuator_armed.manual_lockdown && _state <= AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP) {
 		_state = AutogyroTakeoffState::TAKEOFF_ERROR;
 	}
 

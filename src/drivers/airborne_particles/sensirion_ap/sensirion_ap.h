@@ -111,8 +111,8 @@ enum sensirion_airborne_particle_state {
 };
 
 static const char *_state_names[] = {"General error", "Readout error", "Initialization",
-					  "Measurement", "Cleaning in progress", "Creaning started"
-					 };
+				     "Measurement", "Cleaning in progress", "Creaning started"
+				    };
 
 enum sensor_type {
 	UNKNOWN = -1,

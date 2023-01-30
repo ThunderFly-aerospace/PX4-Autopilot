@@ -1,0 +1,53 @@
+name: Sync with Upstream
+
+env:
+  # Required, URL to upstream (fork base)
+  UPSTREAM_URL: "https://github.com/PX4/PX4-Autopilot"
+  # Optional, defaults to main
+  UPSTREAM_BRANCH: "main"
+  # Optional, defaults to UPSTREAM_BRANCH
+  DOWNSTREAM_BRANCH: "master"
+  # Optional merge arguments
+  MERGE_ARGS: ""
+  # Optional push arguments
+  PUSH_ARGS: ""
+
+# This runs every sunday on 0000 UTC
+on:
+  schedule:
+    - cron: '0 23 * * 0,1,2,3,4'
+  # Allows manual workflow run (must in default branch to work)
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GitHub Sync to Upstream Repository
+        uses: dabreadman/sync-upstream-repo@v1.0.0.b
+        with: 
+          upstream_repo: ${{ env.UPSTREAM_URL }}
+          upstream_branch: ${{ env.UPSTREAM_BRANCH }}
+          downstream_branch: ${{ env.DOWNSTREAM_BRANCH }}
+          #token: ${{ secrets.GITHUB_TOKEN }}
+          merge_args: ${{ env.MERGE_ARGS }}
+          push_args: ${{ env.PUSH_ARGS }}
+
+      - name: checkout repo
+        uses: actions/checkout@main
+
+      - name: init commit env
+        run: |
+          git config --global user.name "Sync Bot"
+
+      - name: Check and update the kernel version
+        run: |
+          cd ${{ github.workspace }} 
+          ls -lh
+          git pull origin master
+
+      - name: 
+        uses: ad-m/github-push-action@master
+        with:
+          #github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: "master"

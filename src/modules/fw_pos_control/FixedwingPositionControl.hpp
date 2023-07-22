@@ -327,6 +327,8 @@ private:
 	// class handling runway takeoff for fixed-wing UAVs with steerable wheels
 	RunwayTakeoff _runway_takeoff;
 
+	AutogyroTakeoff _autogyro_takeoff;
+
 	bool _skipping_takeoff_detection{false};
 
 	// AUTO LANDING
@@ -342,13 +344,8 @@ private:
 	// orbit to altitude only when the aircraft has entered the final *straight approach.
 	hrt_abstime _time_started_landing{0};
 
-<<<<<<< HEAD
 	// [m] lateral touchdown position offset manually commanded during landing
 	float _lateral_touchdown_position_offset{0.0f};
-=======
-	RunwayTakeoff _runway_takeoff;
-	AutogyroTakeoff _autogyro_takeoff;
->>>>>>> Autogyro takeoff, squash and clean
 
 	// [m] relative vector from land point to approach entrance (NE)
 	Vector2f _landing_approach_entrance_offset_vector{};
@@ -402,12 +399,12 @@ private:
 
 	float _groundspeed_undershoot{0.0f};			///< ground speed error to min. speed in m/s
 
-	float _roll{0.0f};
-	float _pitch{0.0f};
-	float _yaw{0.0f};
-	float _yawrate{0.0f};
+	//float _roll{0.0f};
+	//float _pitch{0.0f};
+	//float _yaw{0.0f};
+	//float _yawrate{0.0f};
 
-    // TECS
+	// TECS
 	// total energy control system - airspeed / altitude control
 	TECS _tecs;
 
@@ -873,6 +870,8 @@ private:
 			     const matrix::Vector2f &wind_vel);
 
 	DEFINE_PARAMETERS(
+
+		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>) _param_fw_clmbout_diff,
 
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,

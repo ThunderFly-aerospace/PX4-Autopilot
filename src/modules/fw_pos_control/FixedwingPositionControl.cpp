@@ -700,14 +700,10 @@ FixedwingPositionControl::updateManualTakeoffStatus()
 {
 
 //TF CHECK
-	// a VTOL does not need special takeoff handling
-	if (_vehicle_status.is_vtol) {
-		return false;
-	}
-
-	if (_autogyro_takeoff.autogyroTakeoffEnabled()) {
-		return (!_autogyro_takeoff.isInitialized() || _autogyro_takeoff.climbout());
-	}
+//
+//	if (_autogyro_takeoff.autogyroTakeoffEnabled()) {
+//		return (!_autogyro_takeoff.isInitialized() || _autogyro_takeoff.climbout());
+//	}
 //TF CHECK
 	if (!_completed_manual_takeoff) {
 		const bool at_controllable_airspeed = _airspeed > _param_fw_airspd_min.get()
@@ -718,8 +714,8 @@ FixedwingPositionControl::updateManualTakeoffStatus()
 	}
 
 	// in air for < 10s
-	return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
-	       && (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get());
+	//return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
+	//       && (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get());
 
 }
 

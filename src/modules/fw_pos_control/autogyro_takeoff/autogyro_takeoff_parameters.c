@@ -99,3 +99,86 @@ PARAM_DEFINE_FLOAT(AG_ROTOR_RPM, 1000.0);
  * @value 10 Not implemented: SITL in flightgear
  */
 PARAM_DEFINE_INT32(AG_PROT_TYPE, 0);
+
+
+/**
+ * Altitude AGL at which we have enough ground clearance to allow some roll.
+ *
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 1
+ * @increment 1
+ * @group Autogyro
+ */
+PARAM_DEFINE_FLOAT(AG_NAV_ALT, 5.0);
+
+/**
+ * Max roll during climbout.
+ *
+ * Roll is limited during climbout to ensure enough lift and prevents aggressive
+ * navigation before we're on a safe height.
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 60.0
+ * @decimal 1
+ * @increment 0.5
+ * @group Autogyro
+ */
+
+PARAM_DEFINE_FLOAT(AG_TKO_MAX_ROLL, 25.0);
+
+
+
+/**
+ * Max pitch during takeoff.
+ *
+ * Fixed-wing settings are used if set to 0. Note that there is also a minimum
+ * pitch of 10 degrees during takeoff, so this must be larger if set.
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 60.0
+ * @decimal 1
+ * @increment 0.5
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
+
+
+
+/**
+ * Min airspeed scaling factor for takeoff.
+ *
+ * Pitch up will be commanded when the following airspeed is reached:
+ * FW_AIRSPD_MIN * RWTO_AIRSPD_SCL
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_AIRSPD_SCL, 1.3);
+
+
+
+/**
+ * Climbout Altitude difference
+ *
+ * If the altitude error exceeds this parameter, the system will climb out
+ * with maximum throttle and minimum airspeed until it is closer than this
+ * distance to the desired altitude. Mostly used for takeoff waypoints / modes.
+ * Set to 0 to disable climbout mode (not recommended).
+ *
+ * @unit m
+ * @min 0.0
+ * @max 150.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);

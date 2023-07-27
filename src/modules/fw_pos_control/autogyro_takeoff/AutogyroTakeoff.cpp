@@ -86,6 +86,8 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 	actuator_armed_s actuator_armed;
 	_actuator_armed_sub.update(&actuator_armed);
 
+	//time_in_state_ = time_now - time_initialized_;
+
 	PX4_INFO("Takeoff: state %i, altitude: %f to %f", state_, (double)vehicle_altitude, (double)clearance_altitude);
 
 // TODO Zachrana pri uzemeni po startu.
@@ -123,14 +125,16 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 			    || param_ag_prerotator_type_.get() == AutogyroTakeoffType::ELPREROT_RUNWAY) {
 				if (doPrerotate()) {
 					play_next_tone();
-					state_= AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
-					time_in_state_ = time_now;
+					setState(AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE, time_now);
+					// state_= AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
+					// time_in_state_ = time_now;
 				}
 
 			} else { // manually controlled prerotator or prerotation by forward movement
 				play_next_tone();
-				state_= AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
-				time_in_state_ = time_now;
+				setState(AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE, time_now);
+				// state_= AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
+				// time_in_state_ = time_now;
 			}
 
 			mavlink_log_info(mavlink_log_pub, "Takeoff: minimal RPM for prerotator reached");
@@ -152,8 +156,9 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:  // 1
 
 		if (rotor_rpm > param_ag_prerotator_target_rpm_.get()) {
-			state_= AutogyroTakeoffState::PRE_TAKEOFF_DONE;
-			time_in_state_ = time_now;
+			setState(AutogyroTakeoffState::PRE_TAKEOFF_DONE, time_now);
+			// state_= AutogyroTakeoffState::PRE_TAKEOFF_DONE;
+			// time_in_state_ = time_now;
 			play_next_tone();
 			mavlink_log_info(mavlink_log_pub, "Takeoff, prerotator RPM reached");
 			PX4_INFO("Takeoff: prerotator RPM reached");
@@ -173,7 +178,7 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 
 			if (rotor_rpm < param_ag_rotor_flight_rpm_.get()) {
 				ready_for_release = false;
-				//PX4_INFO("Takeofff, waiting for flight rpm.");
+				PX4_INFO("Takeofff, waiting for flight rpm.");
 				// Some histesis needs to be applied for the start interrupt procedure.
 				// Currently, this does not allow the start to be interrupted.
 				//_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
@@ -183,15 +188,16 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 			// check minimal airspeed
 			if (takeoff_airspeed < (param_fw_airspd_min_.get() * param_rwto_airspd_scl_.get())) {
 				ready_for_release = false;
-				//PX4_INFO("Takeofff, waiting for min airspeed.");
+				PX4_INFO("Takeofff, waiting for min airspeed.");
 			}
 
 			if (ready_for_release) {
 				//initial_yaw_ = get_bearing_to_next_waypoint(initial_wp_(0), initial_wp_(1), current, current_lon);
 				//initial_yaw_
 
-				state_= AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP;
-				time_in_state_ = time_now;
+				setState(AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP, time_now);
+				// state_= AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP;
+				// time_in_state_ = time_now;
 				mavlink_log_info(mavlink_log_pub, "Ready to start motor");
 				//PX4_INFO("Takeoff, Please release.");
 				play_next_tone();
@@ -235,8 +241,9 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 
 			if (ready_for_release) {
 
-				state_= AutogyroTakeoffState::TAKEOFF_RELEASE;
-				time_in_state_ = time_now;
+				// state_= AutogyroTakeoffState::TAKEOFF_RELEASE;
+				// time_in_state_ = time_now;
+				setState(AutogyroTakeoffState::TAKEOFF_RELEASE, time_now);
 				PX4_INFO("Takeoff, Please release.");
 				play_next_tone();
 			}
@@ -263,9 +270,10 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 			if (vehicle_altitude > param_ag_nav_alt_.get()) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
 				PX4_INFO("Takeoff: Climbout.");
-				state_= AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
+				setState(AutogyroTakeoffState::TAKEOFF_CLIMBOUT, time_now);
+				//state_= AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
 				play_next_tone();
-				time_in_state_ = time_now;
+				//time_in_state_ = time_now;
 
 				// set current position as center of loiter
 				// TODO
@@ -286,8 +294,9 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 	case AutogyroTakeoffState::TAKEOFF_CLIMBOUT:
 		if (vehicle_altitude > param_fw_clmbout_diff_.get()) {
 			climbout_ = false;
-			state_= AutogyroTakeoffState::FLY;
-			time_in_state_ = time_now;
+			setState(AutogyroTakeoffState::FLY, time_now);
+			//#state_= AutogyroTakeoffState::FLY;
+			//time_in_state_ = time_now;
 			PX4_INFO("Takeoff:FLY.");
 		}
 
@@ -336,6 +345,14 @@ bool AutogyroTakeoff::doPrerotate()
 {
 	return true;
 }
+
+
+void AutogyroTakeoff::setState(AutogyroTakeoffState state, const hrt_abstime &time_now) {
+		state_ = state;
+		time_state_start_= time_now;
+		time_in_state_= time_now;
+		PX4_INFO("State changed: %i", state);
+		}
 
 // float AutogyroTakeoff::getRequestedAirspeed()
 // {
@@ -448,8 +465,7 @@ float AutogyroTakeoff::getThrottle(const float idle_throttle, const float extern
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE:
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
 			if (param_ag_prerotator_type_.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
-				// TODO float throttle = ((time_now - time_in_state_) / (param_rwto_ramp_time_.get() * 1_s)) * param_rwto_max_thr_.get();
-				float throttle = param_rwto_max_thr_.get();
+				float throttle = (hrt_elapsed_time(&time_in_state_) / (param_rwto_ramp_time_.get() * 1_s)) * param_rwto_max_thr_.get();
 				//PX4_INFO("Thortle: %f",(double)throttle);
 				return math::min(throttle, param_rwto_max_thr_.get());
 
@@ -465,7 +481,7 @@ float AutogyroTakeoff::getThrottle(const float idle_throttle, const float extern
 				throttle = param_rwto_max_thr_.get();
 
 			} else if (param_ag_prerotator_type_.get() == AutogyroTakeoffType::WOPREROT_PLATFORM) {
-				//throttle = ((time_now - time_in_state_) / (param_rwto_ramp_time_.get() * 1_s)) * param_rwto_max_thr_.get();
+				throttle = (hrt_elapsed_time(&time_in_state_) / (param_rwto_ramp_time_.get() * 1_s)) * param_rwto_max_thr_.get();
 				throttle = param_rwto_max_thr_.get();
 				throttle = math::min(throttle, param_rwto_max_thr_.get());
 			}

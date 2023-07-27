@@ -118,6 +118,15 @@ public:
 	bool doRelease();
 	bool doPrerotate();
 
+	/**
+	 * @brief Set new takeoff state and save the time when the state was entered.
+	 *
+	 * @param state
+	 * @param time_now
+	 * @return ** void
+	 */
+	void setState(AutogyroTakeoffState state, const hrt_abstime &time_now);
+
 // 	AutogyroTakeoffState getState() { return state_; }
 // 	float getMinAirspeedScaling() { return _param_rwto_airspd_scl.get(); }
 // 	bool isInitialized() { return _initialized; }
@@ -290,6 +299,7 @@ private:
 	 */
 	matrix::Vector2d start_pos_global_{};
  	hrt_abstime time_in_state_{0};
+ 	hrt_abstime time_state_start_{0};
  	hrt_abstime last_sent_release_status_{0};
  	float init_yaw_{0.f};
  	bool climbout_{false};

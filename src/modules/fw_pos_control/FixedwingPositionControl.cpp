@@ -1339,6 +1339,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
+			mavlink_log_info(&_mavlink_log_pub, "RUNWAY TAKEOFF init\t");
+
 			_runway_takeoff.init(now, _yaw, global_position);
 
 			_takeoff_ground_alt = _current_altitude;
@@ -1428,6 +1430,101 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		// retract ladning gear once passed the climbout state
 		if (_runway_takeoff.getState() > RunwayTakeoffState::CLIMBOUT) {
+			_new_landing_gear_position = landing_gear_s::GEAR_UP;
+		}
+
+	} else if (_autogyro_takeoff.TakeoffEnabled()) {
+		if (!_autogyro_takeoff.isInitialized()) {
+			mavlink_log_info(&_mavlink_log_pub, "AUTOGYRO TAKEOFF init\t");
+			_autogyro_takeoff.init(now, _yaw, global_position);
+
+			_takeoff_ground_alt = _current_altitude;
+
+			_launch_current_yaw = _yaw;
+
+			events::send(events::ID("fixedwing_position_control_autogyro_takeoff"), events::Log::Info, "Takeoff on runway with autogyro");
+		}
+
+//		if (_skipping_takeoff_detection) {
+//			_autogyro_takeoff.forceSetFlyState();
+//		}
+
+		_autogyro_takeoff.update(now, takeoff_airspeed, _airspeed, _current_altitude - _takeoff_ground_alt,
+				       clearance_altitude_amsl - _takeoff_ground_alt, _rpm_frequency, &_mavlink_log_pub);
+
+		// yaw control is disabled once in "taking off" state
+		_att_sp.fw_control_yaw_wheel = _autogyro_takeoff.controlYaw();
+
+		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
+		if (_param_rwto_nudge.get()) {
+			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
+		}
+
+		// tune up the lateral position control guidance when on the ground
+		if (_autogyro_takeoff.controlYaw()) {
+			_npfg.setPeriod(_param_rwto_npfg_period.get());
+
+		}
+
+		const Vector2f start_pos_local = _global_local_proj_ref.project(_autogyro_takeoff.getStartPosition()(0),
+						 _autogyro_takeoff.getStartPosition()(1));
+		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
+		Vector2f takeoff_bearing_vector = {cosf(_launch_current_yaw), sinf(_launch_current_yaw)};
+
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+			// the bearing from runway start to the takeoff waypoint is followed until the clearance altitude is exceeded
+			takeoff_bearing_vector = calculateTakeoffBearingVector(start_pos_local, takeoff_waypoint_local);
+		}
+
+		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+		navigatePathTangent(local_2D_position, start_pos_local, takeoff_bearing_vector, ground_speed,
+				    _wind_vel, 0.0f);
+
+		_att_sp.roll_body = _autogyro_takeoff.getRoll(_npfg.getRollSetpoint());
+
+		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+
+		// use npfg's bearing to commanded course, controlled via yaw angle while on runway
+		const float bearing = _npfg.getBearing();
+
+		// heading hold mode will override this bearing setpoint
+		_att_sp.yaw_body = _autogyro_takeoff.getYaw(bearing);
+
+		// update tecs
+		const float pitch_max = _autogyro_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
+		const float pitch_min = _autogyro_takeoff.getMinPitch(math::radians(_takeoff_pitch_min.get()),
+					math::radians(_param_fw_p_lim_min.get()));
+
+		if (_autogyro_takeoff.resetIntegrators()) {
+			// reset integrals except yaw (which also counts for the wheel controller)
+			_att_sp.reset_integral = true;
+
+			// throttle is open loop anyway during ground roll, no need to wind up the integrator
+			_tecs.resetIntegrals();
+		}
+
+		tecs_update_pitch_throttle(control_interval,
+					   altitude_setpoint_amsl,
+					   target_airspeed,
+					   pitch_min,
+					   pitch_max,
+					   _param_fw_thr_min.get(),
+					   _param_fw_thr_max.get(),
+					   _param_sinkrate_target.get(),
+					   _param_fw_t_clmb_max.get());
+
+		_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
+
+		_att_sp.pitch_body = _autogyro_takeoff.getPitch(get_tecs_pitch());
+		_att_sp.thrust_body[0] = _autogyro_takeoff.getThrottle(_param_fw_thr_idle.get(), get_tecs_thrust());
+
+		_flaps_setpoint = _param_fw_flaps_to_scl.get();
+
+		// retract ladning gear once passed the climbout state
+		if (_autogyro_takeoff.getState() > AutogyroTakeoffState::TAKEOFF_CLIMBOUT) {
 			_new_landing_gear_position = landing_gear_s::GEAR_UP;
 		}
 
@@ -2282,6 +2379,7 @@ FixedwingPositionControl::Run()
 		vehicle_command_poll();
 		vehicle_control_mode_poll();
 		wind_poll();
+		rpm_poll();
 
 		vehicle_air_data_s air_data;
 

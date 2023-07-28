@@ -111,9 +111,11 @@ public:
 	 * @param clearance_altitude Altitude (AGL) above which we have cleared all occlusions in the runway path [m]
 	 * @param rotor_rpm Current rotor RPM [rpm]
 	 * @param mavlink_log_pub Mavlink log uORB handle
+	 * @param actual_pos_global Vehicle global (lat, lon) position [deg]
 	 */
 	void update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
-		    const float vehicle_altitude, const float clearance_altitude, const float rotor_rpm, orb_advert_t *mavlink_log_pub);
+		    const float vehicle_altitude, const float clearance_altitude, const float rotor_rpm, orb_advert_t *mavlink_log_pub,
+		    const matrix::Vector2d &actual_pos_global);
 
 	bool doRelease(bool release);
 	bool doPrerotate();

@@ -115,7 +115,7 @@ public:
 	void update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
 		    const float vehicle_altitude, const float clearance_altitude, const float rotor_rpm, orb_advert_t *mavlink_log_pub);
 
-	bool doRelease();
+	bool doRelease(bool release);
 	bool doPrerotate();
 
 	/**
@@ -241,7 +241,7 @@ public:
 // 	float getInitYaw() { return _init_yaw; }
 
 // 	bool controlYaw();
- 	bool climbout() { return climbout_; }
+	bool climbout() { return climbout_; }
 // 	float getPitch(float tecsPitch);
 // 	float getRoll(float navigatorRoll);
 // 	float getYaw(float navigatorYaw);
@@ -255,7 +255,7 @@ public:
 
 // 	void reset();
 
- 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	void play_next_tone();
 	void play_release_tone();
@@ -298,22 +298,22 @@ private:
 	 * vehicle should accordingly be set on the center of the runway before engaging the mission. [deg]
 	 */
 	matrix::Vector2d start_pos_global_{};
- 	hrt_abstime time_in_state_{0};
- 	hrt_abstime time_state_start_{0};
- 	hrt_abstime last_sent_release_status_{0};
- 	float init_yaw_{0.f};
- 	bool climbout_{false};
+	hrt_abstime time_in_state_{0};
+	hrt_abstime time_state_start_{0};
+	hrt_abstime last_sent_release_status_{0};
+	float init_yaw_{0.f};
+	bool climbout_{false};
 
- 	matrix::Vector2d initial_wp_;
- 	matrix::Vector2d takeoff_wp_;
+	matrix::Vector2d initial_wp_;
+	matrix::Vector2d takeoff_wp_;
 
- 	uORB::Publication<tune_control_s> _tune_control{ORB_ID(tune_control)};
- 	uORB::Publication<takeoff_status_s> _takeoff_status_pub{ORB_ID(takeoff_status)};
+	uORB::Publication<tune_control_s> _tune_control{ORB_ID(tune_control)};
+	uORB::Publication<takeoff_status_s> _takeoff_status_pub{ORB_ID(takeoff_status)};
 
 // 	// TODO: templorary sollution. Should be replaced with autogyro takeoff status with
 // 	// translation into custom mavlink message.  Used to inform launch platform to
 // 	// release drone from lock
- 	uORB::Publication<debug_value_s> _takeoff_informations_pub{ORB_ID(debug_value)};
+	uORB::Publication<debug_value_s> _takeoff_informations_pub{ORB_ID(debug_value)};
 
 	DEFINE_PARAMETERS(
 
@@ -345,7 +345,7 @@ private:
 
 
 
- };
+};
 
 }
 

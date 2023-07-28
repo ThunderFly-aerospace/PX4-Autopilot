@@ -74,7 +74,8 @@ void AutogyroTakeoff::init(const hrt_abstime &time_now, const float initial_yaw,
 }
 
 void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
-			     const float vehicle_altitude, const float clearance_altitude, float rotor_rpm, orb_advert_t *mavlink_log_pub)
+			     const float vehicle_altitude, const float clearance_altitude, float rotor_rpm, orb_advert_t *mavlink_log_pub,
+				 const matrix::Vector2d &current_pos_global)
 {
 	climbout_ = true;
 	takeoff_status_s takeoff_status = {};
@@ -186,8 +187,7 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 			}
 
 			if (ready_for_release) {
-				//initial_yaw_ = get_bearing_to_next_waypoint(initial_wp_(0), initial_wp_(1), current, current_lon);
-				//initial_yaw_
+				initial_yaw_ = get_bearing_to_next_waypoint(initial_wp_(0), initial_wp_(1), current_pos_global(0), current_pos_global(1));
 
 				setState(AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP, time_now);
 				// state_= AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP;
@@ -223,7 +223,7 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 			}
 
 			// ramp-up time elapsed
-			if (hrt_elapsed_time(&time_in_state_) < (param_rwto_ramp_time_.get() * 1_s * 1.5f)) {
+			if (hrt_elapsed_time(&time_in_state_) < (param_rwto_ramp_time_.get() * 1_s * 2.0f)) {
 				ready_for_release = false;
 			}
 
@@ -256,14 +256,10 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 	    OUT: Command for release
 	*/
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
-			// Waiting to get full throttle
-			if (hrt_elapsed_time(&time_in_state_) < (param_rwto_ramp_time_.get() * 1_s)) {
-				// Send release CMD
-			}
 
 			play_release_tone();
 
-			if (vehicle_altitude > param_ag_nav_alt_.get()) {
+			if (vehicle_altitude > clearance_altitude*0.8f) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
 				PX4_INFO("Takeoff: Climbout.");
 				setState(AutogyroTakeoffState::TAKEOFF_CLIMBOUT, time_now);
@@ -381,6 +377,7 @@ void AutogyroTakeoff::setState(AutogyroTakeoffState state, const hrt_abstime &ti
  */
 bool AutogyroTakeoff::controlYaw()
 {
+	return false;
 	// keep controlling yaw directly until we start navigation
 	return state_ < AutogyroTakeoffState::TAKEOFF_CLIMBOUT;
 }
@@ -439,9 +436,10 @@ float AutogyroTakeoff::getRoll(float external_roll_setpoint)
  */
 float AutogyroTakeoff::getYaw(float external_yaw_setpoint)
 {
-	return external_yaw_setpoint;
+	//return external_yaw_setpoint;
 
 	if (param_rwto_hdg_.get() == 0 && state_ < AutogyroTakeoffState::TAKEOFF_CLIMBOUT) {
+		PX4_INFO("initial yaw: %f", (double)initial_yaw_);
 		return initial_yaw_;
 
 	} else {
@@ -456,7 +454,6 @@ float AutogyroTakeoff::getYaw(float external_yaw_setpoint)
  * parameter value, then it returns the TECS throttle.
  */
 float AutogyroTakeoff::getThrottle(const float idle_throttle, const float external_throttle_setpoint) const
-//float AutogyroTakeoff::getThrottle(const hrt_abstime &now, float tecsThrottle)
 {
 
 	//float idle = (double)param_fw_thr_idle_.get();
@@ -506,7 +503,7 @@ float AutogyroTakeoff::getThrottle(const float idle_throttle, const float extern
 
 
 	case AutogyroTakeoffState::TAKEOFF_RELEASE: {
-			return math::max(external_throttle_setpoint , param_rwto_max_thr_.get());
+			return math::max(external_throttle_setpoint, param_rwto_max_thr_.get());
 		}
 
 	// TAKEOFF_CLIMBOUT a FLY

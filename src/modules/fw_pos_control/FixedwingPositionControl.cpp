@@ -1442,7 +1442,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			_launch_current_yaw = _yaw;
 
-			events::send(events::ID("fixedwing_position_control_autogyro_takeoff"), events::Log::Info, "Takeoff on runway with autogyro");
+			events::send(events::ID("fixedwing_position_control_autogyro_takeoff"), events::Log::Info,
+				     "Takeoff on runway with autogyro");
 		}
 
 //		if (_skipping_takeoff_detection) {
@@ -1450,7 +1451,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 //		}
 
 		_autogyro_takeoff.update(now, takeoff_airspeed, _airspeed, _current_altitude - _takeoff_ground_alt,
-				       clearance_altitude_amsl - _takeoff_ground_alt, _rpm_frequency, &_mavlink_log_pub);
+					 clearance_altitude_amsl - _takeoff_ground_alt, _rpm_frequency, &_mavlink_log_pub);
 
 		// yaw control is disabled once in "taking off" state
 		_att_sp.fw_control_yaw_wheel = _autogyro_takeoff.controlYaw();

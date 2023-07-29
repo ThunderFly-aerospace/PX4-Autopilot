@@ -31,6 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(autogyro_takeoff
-	AutogyroTakeoff.cpp
+px4_add_library(autogyro_landing
+	AutogyroLanding.cpp
 )

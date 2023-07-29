@@ -1626,6 +1626,240 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 	}
 }
 
+// void
+// FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, const float control_interval,
+// 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+// {
+// 	// first handle non-position things like airspeed and tecs settings
+// 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
+// 				    _param_fw_airspd_min.get();
+// 	float adjusted_min_airspeed = _param_fw_airspd_min.get();
+
+// 	if (airspeed_land < _param_fw_airspd_min.get()) {
+// 		// adjust underspeed detection bounds for landing airspeed
+// 		_tecs.set_equivalent_airspeed_min(airspeed_land);
+// 		adjusted_min_airspeed = airspeed_land;
+// 	}
+
+// 	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_land, adjusted_min_airspeed,
+// 				ground_speed);
+// 	// Enable tighter altitude control for landings
+// 	_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+
+// 	// now handle position
+// 	const Vector2f local_position{_local_pos.x, _local_pos.y};
+// 	Vector2f local_land_point = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+// 	initializeAutoLanding(now, pos_sp_prev, pos_sp_curr.alt, local_position, local_land_point);
+
+// 	// touchdown may get nudged by manual inputs
+// 	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
+// 	const Vector2f landing_approach_vector = calculateLandingApproachVector();
+
+// 	// calculate the altitude setpoint based on the landing glide slope
+// 	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
+// 				local_position - local_land_point);
+// 	const float glide_slope = _landing_approach_entrance_rel_alt / _landing_approach_entrance_offset_vector.norm();
+
+// 	// NOTE: this relative altitude can go below zero, this is intentional. in the case the vehicle is tracking the glide
+// 	// slope at an offset above the track, making the altitude setpoint constant on intersection with terrain causes
+// 	// an increase in throttle (to slow down and smoothly intersect the flattened altitude setpoint), which is undesirable
+// 	// directly before the flare. instead, we keep the steady state behavior, and let the flare get triggered once at
+// 	// the desired altitude
+// 	const float glide_slope_rel_alt = math::min(along_track_dist_to_touchdown * glide_slope,
+// 					  _landing_approach_entrance_rel_alt);
+
+// 	const bool abort_on_terrain_measurement_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
+// 			position_controller_landing_status_s::TERRAIN_NOT_FOUND);
+// 	const bool abort_on_terrain_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
+// 					      position_controller_landing_status_s::TERRAIN_TIMEOUT);
+// 	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt, abort_on_terrain_measurement_timeout,
+// 				  abort_on_terrain_timeout);
+// 	const float glide_slope_reference_alt = (_param_fw_lnd_useter.get() ==
+// 						TerrainEstimateUseOnLanding::kFollowTerrainRelativeLandingGlideSlope) ? terrain_alt : pos_sp_curr.alt;
+
+// 	float altitude_setpoint;
+
+// 	if (_current_altitude > glide_slope_reference_alt + glide_slope_rel_alt) {
+// 		// descend to the glide slope
+// 		altitude_setpoint = glide_slope_reference_alt + glide_slope_rel_alt;
+
+// 	} else {
+// 		// continue horizontally
+// 		altitude_setpoint = _current_altitude;
+// 	}
+
+// 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
+// 	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
+
+// 	// the terrain estimate (if enabled) is always used to determine the flaring altitude
+// 	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
+// 		// flare and land with minimal speed
+
+// 		// flaring is a "point of no return"
+// 		if (!_flare_states.flaring) {
+// 			_flare_states.flaring = true;
+// 			_flare_states.start_time = now;
+// 			_flare_states.initial_height_rate_setpoint = -_local_pos.vz;
+// 			_flare_states.initial_throttle_setpoint = _att_sp.thrust_body[0];
+// 			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info,
+// 				     "Landing, flaring");
+// 		}
+
+// 		// ramp in flare limits and setpoints with the flare time, command a soft touchdown
+// 		const float seconds_since_flare_start = hrt_elapsed_time(&_flare_states.start_time) * 1.e-6f;
+// 		const float flare_ramp_interpolator = math::constrain(seconds_since_flare_start / _param_fw_lnd_fl_time.get(), 0.0f,
+// 						      1.0f);
+
+// 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
+
+// 		// tune up the lateral position control guidance when on the ground
+// 		const float ground_roll_npfg_period = flare_ramp_interpolator * _param_rwto_npfg_period.get() +
+// 						      (1.0f - flare_ramp_interpolator) * _param_npfg_period.get();
+// 		_npfg.setPeriod(ground_roll_npfg_period);
+
+// 		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
+
+// 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+// 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+// 		navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
+// 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+// 		_att_sp.roll_body = _npfg.getRollSetpoint();
+
+// 		// use npfg's bearing to commanded course, controlled via yaw angle while on runway
+// 		_att_sp.yaw_body = _npfg.getBearing();
+
+// 		/* longitudinal guidance */
+
+// 		const float flare_ramp_interpolator_sqrt = sqrtf(flare_ramp_interpolator);
+
+// 		const float height_rate_setpoint = flare_ramp_interpolator_sqrt * (-_param_fw_lnd_fl_sink.get()) +
+// 						   (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_height_rate_setpoint;
+
+// 		float pitch_min_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmin.get()) +
+// 				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_min.get());
+// 		float pitch_max_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmax.get()) +
+// 				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_max.get());
+
+// 		if (_param_fw_lnd_td_time.get() > FLT_EPSILON) {
+// 			const float touchdown_time = math::max(_param_fw_lnd_td_time.get(), _param_fw_lnd_fl_time.get());
+
+// 			const float touchdown_interpolator = math::constrain((seconds_since_flare_start - touchdown_time) /
+// 							     POST_TOUCHDOWN_CLAMP_TIME, 0.0f,
+// 							     1.0f);
+
+// 			pitch_max_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_max_rad;
+// 			pitch_min_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_min_rad;
+// 		}
+
+// 		// idle throttle may be >0 for internal combustion engines
+// 		// normally set to zero for electric motors
+// 		const float throttle_max = flare_ramp_interpolator_sqrt * _param_fw_thr_idle.get() +
+// 					   (1.0f - flare_ramp_interpolator_sqrt) *
+// 					   _param_fw_thr_max.get();
+
+// 		tecs_update_pitch_throttle(control_interval,
+// 					   altitude_setpoint,
+// 					   target_airspeed,
+// 					   pitch_min_rad,
+// 					   pitch_max_rad,
+// 					   _param_fw_thr_idle.get(),
+// 					   throttle_max,
+// 					   _param_sinkrate_target.get(),
+// 					   _param_climbrate_target.get(),
+// 					   true,
+// 					   height_rate_setpoint);
+
+// 		/* set the attitude and throttle commands */
+
+// 		// TECS has authority (though constrained) over pitch during flare, throttle is hard set to idle
+// 		_att_sp.pitch_body = get_tecs_pitch();
+
+// 		// enable direct yaw control using rudder/wheel
+// 		_att_sp.fw_control_yaw_wheel = true;
+
+// 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
+// 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
+// 			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
+// 		}
+
+// 		// blend the height rate controlled throttle setpoints with initial throttle setting over the flare
+// 		// ramp time period to maintain throttle command continuity when switching from altitude to height rate
+// 		// control
+// 		const float blended_throttle = flare_ramp_interpolator * get_tecs_thrust() + (1.0f - flare_ramp_interpolator) *
+// 					       _flare_states.initial_throttle_setpoint;
+
+// 		_att_sp.thrust_body[0] = blended_throttle;
+
+// 	} else {
+
+// 		// follow the glide slope
+
+// 		/* lateral guidance */
+
+// 		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
+
+// 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+// 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+// 		navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
+// 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+// 		_att_sp.roll_body = _npfg.getRollSetpoint();
+
+// 		/* longitudinal guidance */
+
+// 		// open the desired max sink rate to encompass the glide slope if within the aircraft's performance limits
+// 		// x/sqrt(x^2+1) = sin(arctan(x))
+// 		const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
+// 		const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
+// 						   _param_fw_t_sink_max.get());
+
+// 		tecs_update_pitch_throttle(control_interval,
+// 					   altitude_setpoint,
+// 					   target_airspeed,
+// 					   radians(_param_fw_p_lim_min.get()),
+// 					   radians(_param_fw_p_lim_max.get()),
+// 					   _param_fw_thr_min.get(),
+// 					   _param_fw_thr_max.get(),
+// 					   desired_max_sinkrate,
+// 					   _param_climbrate_target.get());
+
+// 		/* set the attitude and throttle commands */
+
+// 		_att_sp.pitch_body = get_tecs_pitch();
+
+// 		// yaw is not controlled in nominal flight
+// 		_att_sp.yaw_body = _yaw;
+
+// 		// enable direct yaw control using rudder/wheel
+// 		_att_sp.fw_control_yaw_wheel = false;
+
+// 		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : get_tecs_thrust();
+// 	}
+
+// 	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
+
+// 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
+
+// 	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
+// 	_spoilers_setpoint = _param_fw_spoilers_lnd.get();
+
+// 	// deploy gear as soon as we're in land mode, if not already done before
+// 	_new_landing_gear_position = landing_gear_s::GEAR_DOWN;
+
+// 	if (!_vehicle_status.in_transition_to_fw) {
+// 		publishLocalPositionSetpoint(pos_sp_curr);
+// 	}
+
+// 	landing_status_publish();
+// }
+
+
+///////////////////////////////////////////
+///
+///	Auto Landing straight
+///
+////////////////////////////////////////////
+
 void
 FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, const float control_interval,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
@@ -1758,9 +1992,10 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 					   (1.0f - flare_ramp_interpolator_sqrt) *
 					   _param_fw_thr_max.get();
 
+		altitude_setpoint = 50;
 		tecs_update_pitch_throttle(control_interval,
 					   altitude_setpoint,
-					   target_airspeed,
+					   50, //target_airspeed,
 					   pitch_min_rad,
 					   pitch_max_rad,
 					   _param_fw_thr_idle.get(),
@@ -1774,6 +2009,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		// TECS has authority (though constrained) over pitch during flare, throttle is hard set to idle
 		_att_sp.pitch_body = get_tecs_pitch();
+		//_att_sp.pitch_body = 0;
+		PX4_INFO("SET TESC PITCH 2");
 
 		// enable direct yaw control using rudder/wheel
 		_att_sp.fw_control_yaw_wheel = true;
@@ -1799,8 +2036,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
 
-		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+		_npfg.setAirspeedNom(40 * _eas2tas);
+		_npfg.setAirspeedMax(50 * _eas2tas);
 		navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 		_att_sp.roll_body = _npfg.getRollSetpoint();
@@ -1809,23 +2046,41 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		// open the desired max sink rate to encompass the glide slope if within the aircraft's performance limits
 		// x/sqrt(x^2+1) = sin(arctan(x))
-		const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
-		const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
-						   _param_fw_t_sink_max.get());
+		//const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
+		//const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
+						  // _param_fw_t_sink_max.get());
 
+		//const float desired_max_sinkrate = 10.0f;
+
+		// tecs_update_pitch_throttle(control_interval,
+		// 			   altitude_setpoint,
+		// 			   target_airspeed,
+		// 			   radians(_param_fw_p_lim_min.get()),
+		// 			   radians(_param_fw_p_lim_max.get()),
+		// 			   _param_fw_thr_min.get(),
+		// 			   _param_fw_thr_max.get(),
+		// 			   desired_max_sinkrate,
+		// 			   _param_climbrate_target.get());
+
+		PX4_INFO("TECS UPDATE");
 		tecs_update_pitch_throttle(control_interval,
-					   altitude_setpoint,
-					   target_airspeed,
-					   radians(_param_fw_p_lim_min.get()),
-					   radians(_param_fw_p_lim_max.get()),
-					   _param_fw_thr_min.get(),
-					   _param_fw_thr_max.get(),
-					   desired_max_sinkrate,
-					   _param_climbrate_target.get());
+					   0,
+					   30,			// airspeed
+					   -0.8f,   	 // pitch min
+					   -0.5f,  	// pitch max
+					   0.8f,		// throttle min
+					   1.0f,		// throttle max
+					   50,			// sink rate
+					   50);			 // climb rate
+
+		//_pitch = radians(-20);
 
 		/* set the attitude and throttle commands */
 
 		_att_sp.pitch_body = get_tecs_pitch();
+
+		//_att_sp.pitch_body = radians(-20);
+		PX4_INFO("SET TESC PITCH 1: %f, test %f", (double)get_tecs_pitch(), (double)degrees(-20) );
 
 		// yaw is not controlled in nominal flight
 		_att_sp.yaw_body = _yaw;
@@ -1852,6 +2107,13 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 	landing_status_publish();
 }
+
+//////////////////////////////////
+//
+//	end of auto landing
+//
+/////////////////////////////////////
+
 
 void
 FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, const float control_interval,
@@ -2095,6 +2357,7 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 
 	_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
 	_att_sp.pitch_body = get_tecs_pitch();
+	PX4_INFO("CONTROL MANUAL ALT");
 }
 
 void
@@ -2216,6 +2479,7 @@ FixedwingPositionControl::get_tecs_pitch()
 	}
 
 	// return level flight pitch offset to prevent stale tecs state when it's not running
+	PX4_INFO("TECS is not running, setting pitch offset to %d degrees", (int)_param_fw_psp_off.get());
 	return radians(_param_fw_psp_off.get());
 }
 
@@ -2457,12 +2721,14 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT: {
+				PX4_INFO("LAND STRAIGHT");
 				control_auto_landing_straight(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.previous,
 							      _pos_sp_triplet.current);
 				break;
 			}
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR: {
+				PX4_INFO("LAND CIRCULAR");
 				control_auto_landing_circular(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
@@ -2631,10 +2897,12 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
 	_tecs_is_running = true;
+	PX4_INFO("TECS IS RUNNING...");
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
+		PX4_INFO("IS VTOL...");
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
 			_tecs_is_running = false;
 		}
@@ -2699,6 +2967,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
+
+	PX4_INFO("TECS pitch: %f Alt %f->%f, hgtRate: %f, pitch range %f-%f \n\r ", (double)(_pitch-radians(_param_fw_psp_off.get())), (double)_current_altitude, (double)alt_sp, (double)hgt_rate_sp, (double)pitch_min_rad, (double)pitch_max_rad);
 
 	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
 		     _current_altitude,

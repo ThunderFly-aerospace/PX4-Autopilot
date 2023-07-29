@@ -1862,7 +1862,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 void
 FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, const float control_interval,
-		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+		const Vector2f &ground_speed, const float airspeed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	// first handle non-position things like airspeed and tecs settings
 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
@@ -1924,10 +1924,14 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 	}
 
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
-	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
+	//const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
 
 	// the terrain estimate (if enabled) is always used to determine the flaring altitude
-	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
+
+	float decision_altitude = airspeed*airspeed / (2 * CONSTANTS_ONE_G) + _param_fw_lnd_flalt.get();
+	PX4_INFO("decision_altitude: %f", (double) decision_altitude);
+
+	if ((_current_altitude < terrain_alt + decision_altitude) || _flare_states.flaring) {
 		// flare and land with minimal speed
 
 		// flaring is a "point of no return"
@@ -2722,7 +2726,7 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT: {
 				PX4_INFO("LAND STRAIGHT");
-				control_auto_landing_straight(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.previous,
+				control_auto_landing_straight(_local_pos.timestamp, control_interval, ground_speed, _airspeed, _pos_sp_triplet.previous,
 							      _pos_sp_triplet.current);
 				break;
 			}

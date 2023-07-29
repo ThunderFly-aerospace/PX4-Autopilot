@@ -638,11 +638,12 @@ private:
 	 * @param control_interval Time since last position control call [s]
 	 * @param control_interval Time since the last position control update [s]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param airspeed Current airspeed [m/s]
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
 	void control_auto_landing_straight(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
-					   const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+					   const float airspeed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * @brief Controls automatic landing with circular final appraoch.

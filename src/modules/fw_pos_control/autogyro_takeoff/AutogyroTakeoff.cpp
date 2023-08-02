@@ -75,7 +75,7 @@ void AutogyroTakeoff::init(const hrt_abstime &time_now, const float initial_yaw,
 
 void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
 			     const float vehicle_altitude, const float clearance_altitude, float rotor_rpm, orb_advert_t *mavlink_log_pub,
-				 const matrix::Vector2d &current_pos_global)
+			     const matrix::Vector2d &current_pos_global)
 {
 	climbout_ = true;
 	takeoff_status_s takeoff_status = {};
@@ -187,7 +187,8 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 			}
 
 			if (ready_for_release) {
-				initial_yaw_ = get_bearing_to_next_waypoint(initial_wp_(0), initial_wp_(1), current_pos_global(0), current_pos_global(1));
+				initial_yaw_ = get_bearing_to_next_waypoint(initial_wp_(0), initial_wp_(1), current_pos_global(0),
+						current_pos_global(1));
 
 				setState(AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP, time_now);
 				// state_= AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP;
@@ -259,7 +260,7 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 
 			play_release_tone();
 
-			if (vehicle_altitude > clearance_altitude*0.8f) {
+			if (vehicle_altitude > clearance_altitude * 0.8f) {
 				mavlink_log_info(mavlink_log_pub, "Climbout");
 				PX4_INFO("Takeoff: Climbout.");
 				setState(AutogyroTakeoffState::TAKEOFF_CLIMBOUT, time_now);
@@ -469,9 +470,10 @@ float AutogyroTakeoff::getThrottle(const float idle_throttle, const float extern
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE: {
 			if (param_ag_prerotator_type_.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
-			// Without prerotator, forward movement obtained by throttle
+				// Without prerotator, forward movement obtained by throttle
 				float throttle = (hrt_elapsed_time(&time_in_state_) / (param_rwto_ramp_time_.get() * 1_s)) * param_rwto_max_thr_.get();
 				return math::min(throttle, param_rwto_max_thr_.get());
+
 			} else {
 				return idle;
 			}
@@ -479,8 +481,9 @@ float AutogyroTakeoff::getThrottle(const float idle_throttle, const float extern
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_DONE: {
 			if (param_ag_prerotator_type_.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
-			// Without prerotator, forward movement obtained by throttle
+				// Without prerotator, forward movement obtained by throttle
 				return param_rwto_max_thr_.get();
+
 			} else {
 				return idle;
 			}
@@ -490,14 +493,15 @@ float AutogyroTakeoff::getThrottle(const float idle_throttle, const float extern
 			float throttle = idle;
 
 			if (param_ag_prerotator_type_.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
-			// Without prerotator, forward movement obtained by throttle
+				// Without prerotator, forward movement obtained by throttle
 				throttle = param_rwto_max_thr_.get();
 
 			} else if (param_ag_prerotator_type_.get() == AutogyroTakeoffType::WOPREROT_PLATFORM) {
-			// without prerotator, forward movement by platform (car, winch) speed
+				// without prerotator, forward movement by platform (car, winch) speed
 				throttle = (hrt_elapsed_time(&time_in_state_) / (param_rwto_ramp_time_.get() * 1_s)) * param_rwto_max_thr_.get();
 				throttle = math::min(throttle, param_rwto_max_thr_.get());
 			}
+
 			return throttle;
 		}
 

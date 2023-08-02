@@ -1862,7 +1862,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 void
 FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, const float control_interval,
-		const Vector2f &ground_speed, const float airspeed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+		const Vector2f &ground_speed, const float airspeed, const position_setpoint_s &pos_sp_prev,
+		const position_setpoint_s &pos_sp_curr)
 {
 	// first handle non-position things like airspeed and tecs settings
 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
@@ -1928,14 +1929,15 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 	// the terrain estimate (if enabled) is always used to determine the flaring altitude
 
-	float decision_altitude = airspeed*airspeed / (2 * CONSTANTS_ONE_G) + _param_fw_lnd_flalt.get();
-	PX4_INFO("decision_altitude: %f", (double) decision_altitude);
+	float decision_altitude = airspeed * airspeed / (2 * CONSTANTS_ONE_G) + _param_fw_lnd_flalt.get();
+	// PX4_INFO("decision_altitude: %f", (double) decision_altitude);
 
 	if ((_current_altitude < terrain_alt + decision_altitude) || _flare_states.flaring) {
 		// flare and land with minimal speed
 
 		// flaring is a "point of no return"
 		if (!_flare_states.flaring) {
+			PX4_INFO("decision_altitude reached: %f", (double) decision_altitude);
 			_flare_states.flaring = true;
 			_flare_states.start_time = now;
 			_flare_states.initial_height_rate_setpoint = -_local_pos.vz;
@@ -2014,7 +2016,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		// TECS has authority (though constrained) over pitch during flare, throttle is hard set to idle
 		_att_sp.pitch_body = get_tecs_pitch();
 		//_att_sp.pitch_body = 0;
-		PX4_INFO("SET TESC PITCH 2");
+		//PX4_INFO("SET TESC PITCH 2");
 
 		// enable direct yaw control using rudder/wheel
 		_att_sp.fw_control_yaw_wheel = true;
@@ -2052,7 +2054,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		// x/sqrt(x^2+1) = sin(arctan(x))
 		//const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
 		//const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
-						  // _param_fw_t_sink_max.get());
+		// _param_fw_t_sink_max.get());
 
 		//const float desired_max_sinkrate = 10.0f;
 
@@ -2066,7 +2068,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		// 			   desired_max_sinkrate,
 		// 			   _param_climbrate_target.get());
 
-		PX4_INFO("TECS UPDATE");
+		//PX4_INFO("TECS UPDATE");
 		tecs_update_pitch_throttle(control_interval,
 					   0,
 					   30,			// airspeed
@@ -2084,7 +2086,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		_att_sp.pitch_body = get_tecs_pitch();
 
 		//_att_sp.pitch_body = radians(-20);
-		PX4_INFO("SET TESC PITCH 1: %f, test %f", (double)get_tecs_pitch(), (double)degrees(-20) );
+		//PX4_INFO("SET TESC PITCH 1: %f, test %f", (double)get_tecs_pitch(), (double)degrees(-20) );
 
 		// yaw is not controlled in nominal flight
 		_att_sp.yaw_body = _yaw;
@@ -2907,6 +2909,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
 		PX4_INFO("IS VTOL...");
+
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
 			_tecs_is_running = false;
 		}
@@ -2972,7 +2975,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
 
-	PX4_INFO("TECS pitch: %f Alt %f->%f, hgtRate: %f, pitch range %f-%f \n\r ", (double)(_pitch-radians(_param_fw_psp_off.get())), (double)_current_altitude, (double)alt_sp, (double)hgt_rate_sp, (double)pitch_min_rad, (double)pitch_max_rad);
+	PX4_INFO("TECS pitch: %f Alt %f->%f, hgtRate: %f, pitch range %f-%f \n\r ",
+		 (double)(_pitch - radians(_param_fw_psp_off.get())), (double)_current_altitude, (double)alt_sp, (double)hgt_rate_sp,
+		 (double)pitch_min_rad, (double)pitch_max_rad);
 
 	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
 		     _current_altitude,

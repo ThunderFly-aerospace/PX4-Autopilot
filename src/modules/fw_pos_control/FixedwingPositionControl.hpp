@@ -357,6 +357,8 @@ private:
 
 	uint8_t _landing_abort_status{position_controller_landing_status_s::NOT_ABORTED};
 
+	float decision_altitude_{0.0f};
+
 	// organize flare states XXX: need to split into a separate class at some point!
 	struct FlareStates {
 		bool flaring{false};

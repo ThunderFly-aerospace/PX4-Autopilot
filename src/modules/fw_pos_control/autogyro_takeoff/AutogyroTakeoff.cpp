@@ -440,7 +440,7 @@ float AutogyroTakeoff::getYaw(float external_yaw_setpoint)
 	//return external_yaw_setpoint;
 
 	if (param_rwto_hdg_.get() == 0 && state_ < AutogyroTakeoffState::TAKEOFF_CLIMBOUT) {
-		PX4_INFO("initial yaw: %f", (double)initial_yaw_);
+		//PX4_INFO("initial yaw: %f", (double)initial_yaw_);
 		return initial_yaw_;
 
 	} else {

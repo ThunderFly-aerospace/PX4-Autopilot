@@ -2,6 +2,9 @@ uint64 timestamp # [us] time since system start
 float32 lateral_touchdown_offset # [m] lateral touchdown position offset manually commanded during landing
 bool flaring # true if the aircraft is flaring
 
+float32 decision_altitude # [m] the altitude at which the decision was made to start braking
+
+
 # abort status is:
 # 0 if not aborted
 # >0 if aborted, with the singular abort criterion which triggered the landing abort enumerated by the following abort reasons

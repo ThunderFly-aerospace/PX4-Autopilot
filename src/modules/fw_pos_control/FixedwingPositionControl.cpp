@@ -576,6 +576,8 @@ FixedwingPositionControl::landing_status_publish()
 	pos_ctrl_landing_status.abort_status = _landing_abort_status;
 	pos_ctrl_landing_status.timestamp = hrt_absolute_time();
 
+	pos_ctrl_landing_status.decision_altitude = decision_altitude_;
+
 	_pos_ctrl_landing_status_pub.publish(pos_ctrl_landing_status);
 }
 
@@ -1930,6 +1932,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 	// the terrain estimate (if enabled) is always used to determine the flaring altitude
 
 	float decision_altitude = airspeed * airspeed / (2 * CONSTANTS_ONE_G) + _param_fw_lnd_flalt.get();
+	decision_altitude_ = decision_altitude;
 	// PX4_INFO("decision_altitude: %f", (double) decision_altitude);
 
 	if ((_current_altitude < terrain_alt + decision_altitude) || _flare_states.flaring) {
@@ -1994,9 +1997,9 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		// idle throttle may be >0 for internal combustion engines
 		// normally set to zero for electric motors
-		const float throttle_max = flare_ramp_interpolator_sqrt * _param_fw_thr_idle.get() +
-					   (1.0f - flare_ramp_interpolator_sqrt) *
-					   _param_fw_thr_max.get();
+		//const float throttle_max = flare_ramp_interpolator_sqrt * _param_fw_thr_idle.get() +
+		//			   (1.0f - flare_ramp_interpolator_sqrt) *
+		//			   _param_fw_thr_max.get();
 
 		altitude_setpoint = 50;
 		tecs_update_pitch_throttle(control_interval,
@@ -2004,8 +2007,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 					   50, //target_airspeed,
 					   pitch_min_rad,
 					   pitch_max_rad,
-					   _param_fw_thr_idle.get(),
-					   throttle_max,
+					   0,
+					   0.1,
 					   _param_sinkrate_target.get(),
 					   _param_climbrate_target.get(),
 					   true,
@@ -2727,14 +2730,14 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT: {
-				PX4_INFO("LAND STRAIGHT");
+				//PX4_INFO("LAND STRAIGHT");
 				control_auto_landing_straight(_local_pos.timestamp, control_interval, ground_speed, _airspeed, _pos_sp_triplet.previous,
 							      _pos_sp_triplet.current);
 				break;
 			}
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR: {
-				PX4_INFO("LAND CIRCULAR");
+				//PX4_INFO("LAND CIRCULAR");
 				control_auto_landing_circular(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
@@ -2903,12 +2906,12 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
 	_tecs_is_running = true;
-	PX4_INFO("TECS IS RUNNING...");
+	//PX4_INFO("TECS IS RUNNING...");
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
-		PX4_INFO("IS VTOL...");
+		//PX4_INFO("IS VTOL...");
 
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
 			_tecs_is_running = false;
@@ -2975,9 +2978,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
 
-	PX4_INFO("TECS pitch: %f Alt %f->%f, hgtRate: %f, pitch range %f-%f \n\r ",
-		 (double)(_pitch - radians(_param_fw_psp_off.get())), (double)_current_altitude, (double)alt_sp, (double)hgt_rate_sp,
-		 (double)pitch_min_rad, (double)pitch_max_rad);
+	//PX4_INFO("TECS pitch: %f Alt %f->%f, hgtRate: %f, pitch range %f-%f \n\r ",
+	//	 (double)(_pitch - radians(_param_fw_psp_off.get())), (double)_current_altitude, (double)alt_sp, (double)hgt_rate_sp,
+	//	 (double)pitch_min_rad, (double)pitch_max_rad);
 
 	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
 		     _current_altitude,

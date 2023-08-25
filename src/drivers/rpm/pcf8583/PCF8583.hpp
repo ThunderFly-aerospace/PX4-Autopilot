@@ -52,6 +52,7 @@
 #include <uORB/topics/rpm.h>
 #include <drivers/drv_hrt.h>
 
+
 /* Configuration Constants */
 #define PCF8583_BASEADDR_DEFAULT             0x50
 
@@ -89,11 +90,15 @@ private:
 	int            _tranfer_fail_count{0};
 	uint8_t        _last_config_register_content{0x00};
 
+	uint32_t	_last_valid_rpm{0};
+	hrt_abstime	_last_valid_measurement{0};
+
 	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::PCF8583_POOL>) _param_pcf8583_pool,
 		(ParamInt<px4::params::PCF8583_RESET>) _param_pcf8583_reset,
-		(ParamInt<px4::params::PCF8583_MAGNET>) _param_pcf8583_magnet
+		(ParamInt<px4::params::PCF8583_MAGNET>) _param_pcf8583_magnet,
+		(ParamInt<px4::params::PCF8583_MAX_RATE>) _param_pcf8583_max_rate
 	)
 };

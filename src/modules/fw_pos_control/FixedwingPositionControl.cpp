@@ -2074,13 +2074,13 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		//PX4_INFO("TECS UPDATE");
 		tecs_update_pitch_throttle(control_interval,
 					   0,
-					   30,			// airspeed
-					   -0.8f,   	 // pitch min
-					   -0.5f,  	// pitch max
-					   0.8f,		// throttle min
-					   1.0f,		// throttle max
+					   20,			// airspeed
+					   -1.0f,   	 // pitch min
+					   -0.6f,  	// pitch max
+					   0.0f,		// throttle min
+					   0.4f,		// throttle max
 					   50,			// sink rate
-					   50);			 // climb rate
+					   1);			 // climb rate
 
 		//_pitch = radians(-20);
 

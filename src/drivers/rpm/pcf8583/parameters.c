@@ -80,3 +80,19 @@ PARAM_DEFINE_INT32(PCF8583_RESET, 500000);
  * @min 1
  */
 PARAM_DEFINE_INT32(PCF8583_MAGNET, 2);
+
+
+/**
+ * PCF8583 maximal frequency rate
+ *
+ * Maximal RPM decreese/increase between two measurements
+ * It is used to ignore wrong measurements.
+ * -1 means no limit
+ *
+ * @reboot_required true
+ * @group Sensors
+ * @min -1
+ * @max 100000
+ * @unit m/s
+ */
+PARAM_DEFINE_INT32(PCF8583_MAX_RATE, -1);

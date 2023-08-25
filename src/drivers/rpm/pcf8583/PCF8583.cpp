@@ -33,6 +33,7 @@
 
 #include "PCF8583.hpp"
 
+
 PCF8583::PCF8583(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	ModuleParams(nullptr),
@@ -98,7 +99,7 @@ void PCF8583::initCounter()
 	_tranfer_fail_count = 0;
 	setRegister(0x00, 0b00100000);
 	resetCounter();
-
+	PX4_INFO("Init counter");
 }
 
 uint32_t PCF8583::getCounter()
@@ -198,11 +199,25 @@ void PCF8583::RunImpl()
 	float indicated_rpm = (((float)diffCount / _param_pcf8583_magnet.get()) / ((float)diffTime / 1000000.f)) * 60.f;
 	float estimated_accurancy = 1 / (float)_param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
 
-	// publish data to uorb
+	// Check if RPM rate is within limits. if not, skip this measurement and reset counter
+	float rpm_rate = (float)(indicated_rpm - _last_valid_rpm) / ((float)hrt_elapsed_time(&_last_valid_measurement) *
+			 (float)10e-6);
+
+	if (_param_pcf8583_max_rate.get() > 0 && fabs(rpm_rate) > _param_pcf8583_max_rate.get()) {
+		PX4_ERR("pcf8583 exceeded max RPM rate: abs(%f) > %ld RPM/s",
+			(double)(rpm_rate),
+			_param_pcf8583_max_rate.get());
+		initCounter();
+		return;
+	}
+
+	_last_valid_measurement = _last_measurement_time;
+	_last_valid_rpm = indicated_rpm;
+
 	rpm_s msg{};
 	msg.indicated_frequency_rpm = indicated_rpm;
 	msg.estimated_accurancy_rpm = estimated_accurancy;
-	msg.timestamp = hrt_absolute_time();
+	msg.timestamp = _last_measurement_time;
 	_rpm_pub.publish(msg);
 
 	//check counter range

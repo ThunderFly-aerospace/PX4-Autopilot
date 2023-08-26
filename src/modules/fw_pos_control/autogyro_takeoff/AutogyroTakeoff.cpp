@@ -457,10 +457,7 @@ float AutogyroTakeoff::getYaw(float external_yaw_setpoint)
 float AutogyroTakeoff::getThrottle(const float idle_throttle, const float external_throttle_setpoint) const
 {
 
-	//float idle = (double)param_fw_thr_idle_.get();
-	float idle = (double)idle_throttle;
-
-	//PX4_INFO("GET THROTTLE %f, state: %f, time: %f", (double)idle, (double)state_, (double)(now - time_in_state_));
+	//PX4_INFO("GET THROTTLE %f, state: %f, time: %f", (double)idle_throttle, (double)state_, (double)(now - time_in_state_));
 
 	switch (state_) {
 
@@ -475,7 +472,8 @@ float AutogyroTakeoff::getThrottle(const float idle_throttle, const float extern
 				return math::min(throttle, param_rwto_max_thr_.get());
 
 			} else {
-				return idle;
+				float throttle = (hrt_elapsed_time(&time_in_state_) / (param_rwto_ramp_time_.get() * 1_s)) * idle_throttle;
+				return math::min(throttle, idle_throttle);
 			}
 		}
 
@@ -485,12 +483,12 @@ float AutogyroTakeoff::getThrottle(const float idle_throttle, const float extern
 				return param_rwto_max_thr_.get();
 
 			} else {
-				return idle;
+				return idle_throttle;
 			}
 		}
 
 	case AutogyroTakeoffState::PRE_TAKEOFF_RAMPUP: {
-			float throttle = idle;
+			float throttle = idle_throttle;
 
 			if (param_ag_prerotator_type_.get() == AutogyroTakeoffType::WOPREROT_RUNWAY) {
 				// Without prerotator, forward movement obtained by throttle

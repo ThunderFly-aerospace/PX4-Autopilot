@@ -163,6 +163,7 @@ void PCF8583::RunImpl()
 {
 	// read sensor and compute frequency
 	int32_t oldcount = _count;
+	bool is_valid = false;
 
 	int32_t diffTime = hrt_elapsed_time(&_last_measurement_time);
 
@@ -182,7 +183,7 @@ void PCF8583::RunImpl()
 	if (diffCount > (999999 - oldcount)) {
 		PX4_ERR("pcf8583 RPM register overflow");
 		resetCounter();
-		return;
+		is_valid = false;
 	}
 
 	//check if device failed or reset
@@ -192,7 +193,7 @@ void PCF8583::RunImpl()
 		PX4_ERR("pcf8583 RPM sensor restart: fail count %d, status: %d, diffCount: %ld",
 			_tranfer_fail_count, s, diffCount);
 		initCounter();
-		return;
+		is_valid = false;
 	}
 
 	// Calculate RPM and accuracy estimation
@@ -200,15 +201,15 @@ void PCF8583::RunImpl()
 	float estimated_accurancy = 1 / (float)_param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
 
 	// Check if RPM rate is within limits. if not, skip this measurement and reset counter
-	float rpm_rate = (float)(indicated_rpm - _last_valid_rpm) / ((float)hrt_elapsed_time(&_last_valid_measurement) *
-			 (float)10e-6);
+	float rpm_rate = ((float)(indicated_rpm - _last_valid_rpm)*(float)10e6) / (float)hrt_elapsed_time(&_last_valid_measurement);
 
 	if (_param_pcf8583_max_rate.get() > 0 && fabs(rpm_rate) > _param_pcf8583_max_rate.get()) {
 		PX4_ERR("pcf8583 exceeded max RPM rate: abs(%f) > %ld RPM/s",
 			(double)(rpm_rate),
 			_param_pcf8583_max_rate.get());
-		initCounter();
-		return;
+		//initCounter();
+		//return;
+		is_valid = false;
 	}
 
 	_last_valid_measurement = _last_measurement_time;
@@ -218,6 +219,8 @@ void PCF8583::RunImpl()
 	msg.indicated_frequency_rpm = indicated_rpm;
 	msg.estimated_accurancy_rpm = estimated_accurancy;
 	msg.timestamp = _last_measurement_time;
+	msg.is_valid = is_valid;
+	msg.rpm_rate = rpm_rate;
 	_rpm_pub.publish(msg);
 
 	//check counter range

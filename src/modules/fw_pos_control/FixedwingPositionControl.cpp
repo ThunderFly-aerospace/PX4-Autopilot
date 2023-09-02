@@ -342,9 +342,20 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 void
 FixedwingPositionControl::rpm_poll()
 {
+	/**
+	 * @brief This function updates the RPM value and frequency.
+	 *
+	 * It checks if the RPM subscription has been updated and copies the updated value to the local variable.
+	 * The frequency of the RPM is then updated based on the indicated frequency in RPM.
+	 *
+	 * @return None
+	 */
+
 	if (_rpm_sub.update(&_rpm)) {
 		_rpm_sub.copy(&_rpm);
-		_rpm_frequency = _rpm.indicated_frequency_rpm;
+		if(_rpm._is_valid){
+			_rpm_frequency = _rpm.indicated_frequency_rpm;
+		}
 	}
 }
 

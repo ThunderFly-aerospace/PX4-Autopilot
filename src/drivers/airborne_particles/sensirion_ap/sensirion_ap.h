@@ -180,4 +180,8 @@ private:
 	uint16_t _last_command = 0;
 	uORB::PublicationMulti<sensor_airborne_particles_s> sensor_airborne_particles_pub{ORB_ID(sensor_airborne_particles)};
 
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SENS_EN_SEN_AP>) _param_sens_en_senseirion_ap
+	)
+
 };

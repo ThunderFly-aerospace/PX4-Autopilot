@@ -476,10 +476,11 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
-		if (inst && (inst != self) && (inst->get_forwarding_on())) {
+		if (inst && (inst != self) && (inst->get_forwarding_on())) {      
 			// Pass message only if target component was seen before
 			if (inst->_receiver.component_was_seen(target_system_id, target_component_id)) {
 				inst->pass_message(msg);
+        PX4_INFO("forwarding %d %d",target_system_id,target_component_id);
 			}
 		}
 	}
@@ -1692,7 +1693,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	/* fallthrough */
 	case MAVLINK_MODE_CUSTOM:
-		//stream nothing
+		configure_stream_local("ATTITUDE", 0.1f);
+    configure_stream_local("ALTITUDE", 0.1f);
+		configure_stream_local("GLOBAL_POSITION_INT", 0.2f);
+		configure_stream_local("GPS_GLOBAL_ORIGIN", 0.1f);
+		configure_stream_local("GPS_RAW_INT", 0.25f);
+		configure_stream_local("GPS_STATUS", 0.1f);
+		configure_stream_local("HOME_POSITION", 0.05f);
+		configure_stream_local("HYGROMETER_SENSOR", 0.05f);
+		configure_stream_local("BATTERY_STATUS", 0.05f);
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB

@@ -480,7 +480,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			// Pass message only if target component was seen before
 			if (inst->_receiver.component_was_seen(target_system_id, target_component_id)) {
 				inst->pass_message(msg);
-        PX4_INFO("forwarding %d %d",target_system_id,target_component_id);
+        //PX4_INFO("forwarding %d %d",target_system_id,target_component_id);
 			}
 		}
 	}
@@ -1693,15 +1693,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	/* fallthrough */
 	case MAVLINK_MODE_CUSTOM:
-		configure_stream_local("ATTITUDE", 0.1f);
-    configure_stream_local("ALTITUDE", 0.1f);
-		configure_stream_local("GLOBAL_POSITION_INT", 0.2f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 0.1f);
-		configure_stream_local("GPS_RAW_INT", 0.25f);
-		configure_stream_local("GPS_STATUS", 0.1f);
-		configure_stream_local("HOME_POSITION", 0.05f);
-		configure_stream_local("HYGROMETER_SENSOR", 0.05f);
-		configure_stream_local("BATTERY_STATUS", 0.05f);
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
@@ -1774,21 +1765,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_MINIMAL:
-		configure_stream_local("ALTITUDE", 0.5f);
-		configure_stream_local("ATTITUDE", 10.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 0.1f);
-		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
-		configure_stream_local("GPS_RAW_INT", 0.5f);
-		configure_stream_local("HOME_POSITION", 0.1f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream_local("RC_CHANNELS", 0.5f);
-		configure_stream_local("SYS_STATUS", 0.1f);
-		configure_stream_local("VFR_HUD", 1.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#endif // !CONSTRAINED_FLASH
-
+		configure_stream_local("ATTITUDE", 0.1f);
+    configure_stream_local("ALTITUDE", 0.1f);
+		configure_stream_local("GLOBAL_POSITION_INT", 0.2f);
+		configure_stream_local("GPS_GLOBAL_ORIGIN", 0.1f);
+		configure_stream_local("GPS_RAW_INT", 0.25f);
+		configure_stream_local("GPS_STATUS", 0.1f);
+		configure_stream_local("HOME_POSITION", 0.05f);
+		configure_stream_local("HYGROMETER_SENSOR", 0.05f);
+		configure_stream_local("BATTERY_STATUS", 0.05f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH:

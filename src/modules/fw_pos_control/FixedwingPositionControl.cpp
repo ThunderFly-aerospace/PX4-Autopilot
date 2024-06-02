@@ -353,7 +353,7 @@ FixedwingPositionControl::rpm_poll()
 
 	if (_rpm_sub.update(&_rpm)) {
 		_rpm_sub.copy(&_rpm);
-		if(_rpm._is_valid){
+		if(_rpm.is_valid){
 			_rpm_frequency = _rpm.indicated_frequency_rpm;
 		}
 	}

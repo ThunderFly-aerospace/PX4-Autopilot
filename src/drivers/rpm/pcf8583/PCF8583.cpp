@@ -163,7 +163,7 @@ void PCF8583::RunImpl()
 {
 	// read sensor and compute frequency
 	int32_t oldcount = _count;
-	bool is_valid = false;
+	bool is_valid = true;
 
 	int32_t diffTime = hrt_elapsed_time(&_last_measurement_time);
 

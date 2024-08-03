@@ -137,6 +137,7 @@
 
 #define DRV_BARO_DEVTYPE_MPC2520	0x5F
 #define DRV_BARO_DEVTYPE_LPS22HB	0x60
+#define DRV_SENS_DEVTYPE_S35770       0x62
 
 #define DRV_ACC_DEVTYPE_LSM303AGR       0x61
 #define DRV_MAG_DEVTYPE_LSM303AGR       0x62
@@ -170,6 +171,7 @@
 #define DRV_SENS_DEVTYPE_IRLOCK       0x7d
 #define DRV_SENS_DEVTYPE_PCF8583      0x7e
 #define DRV_TEL_DEVTYPE_BST           0x7f
+
 
 // Generic types for unknown CAN sensors
 #define DRV_ACC_DEVTYPE_UAVCAN	0x80

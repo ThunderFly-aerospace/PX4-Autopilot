@@ -6,14 +6,14 @@ on:
   push:
     branches:
       - tf/actions/autorebase
+  workflow_dispatch:
 
 jobs:
   update-branches:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        branch: [tf/SHT4x, tf/s35770]
-
+        branch: [main, tf/SHT4x, tf/s35770]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -34,5 +34,5 @@ jobs:
       - name: Checkout and rebase branch
         run: |
           git checkout ${{ matrix.branch }}
-          git rebase upstream/master
+          git rebase upstream/main
           git push origin ${{ matrix.branch }} --force

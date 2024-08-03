@@ -1,13 +1,15 @@
-name: Create tf/main_auto Branch
+name: Create tf/build/main Branch
 
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * *'
   push:
-  
+    branches:
+      - main  # nebo jiná specifická větev, ve které má být workflow spuštěn
+
 jobs:
-  create-tf-main:
+  create-tf-build-main:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -26,19 +28,21 @@ jobs:
       - name: Fetch all branches
         run: git fetch --all
 
-      - name: Create tf/main branch from upstream/main
+      - name: Create and update tf/build/main branch from upstream/main
         run: |
           git checkout upstream/main
           git checkout -b tf/build/main
 
-      - name: Merge tf/SHT4x into tf/main
+      - name: Fetch and merge tf/SHT4x
         run: |
+          git fetch origin tf/SHT4x:tf/SHT4x
           git merge tf/SHT4x
 
-      - name: Merge tf/s35770 into tf/main
+      - name: Fetch and merge tf/s35770
         run: |
+          git fetch origin tf/s35770:tf/s35770
           git merge tf/s35770
 
-      - name: Push tf/main branch to origin
+      - name: Push tf/build/main branch to origin
         run: |
           git push origin tf/build/main --force

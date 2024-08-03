@@ -50,7 +50,8 @@ SHT4X::SHT4X(const I2CSPIDriverConfig &config) :
 }
 
 
-uint8_t SHT4X::calc_crc(uint8_t data[2])
+uint8_t
+SHT4X::calc_crc(uint8_t data[2])
 {
 	uint8_t crc = 0xFF;
 
@@ -71,7 +72,8 @@ uint8_t SHT4X::calc_crc(uint8_t data[2])
 }
 
 
-uint8_t SHT4X::validate_crc(uint8_t data[6])
+uint8_t
+SHT4X::validate_crc(uint8_t data[6])
 {
 
 	uint8_t crc_err = 0;
@@ -91,33 +93,10 @@ uint8_t SHT4X::validate_crc(uint8_t data[6])
 
 
 
-// int SHT4X::read_data(uint8_t command, uint8_t *data_ptr, uint8_t length)
-// {
-
-// 	uint8_t raw_data[length/2*3];
-// 	transfer(&command, 1, &raw_data[0], length/2*3);
-// 	for (int i = 0; i < length/2*3; i++) {
-// 		PX4_INFO("> %x", raw_data[i]);
-// 	}
-
-// 	uint8_t crc_err = 0;
-// 	for (int i = 0; i < length / 3; ++i) {
-// 		uint8_t crc_data[2] = {raw_data[i * 3], raw_data[i * 3 + 1]};
-
-// 		if (raw_data[i * 3 + 2] != calc_crc(crc_data)) {
-// 			crc_err ++;
-// 		}
-
-// 		*(data_ptr + i * 2) = raw_data[i * 3];
-// 		*(data_ptr + i * 2 + 1) = raw_data[i * 3 + 1];
-// 	}
-
-// 	return crc_err;
-// }
 
 
-
-uint8_t SHT4X::read_serialnumber()
+uint8_t
+SHT4X::read_serialnumber()
 {
 	uint8_t data[6];
 	uint8_t addr = SHT4x_CMD_READ_SERIAL;
@@ -136,7 +115,8 @@ uint8_t SHT4X::read_serialnumber()
 
 
 
-uint8_t SHT4X::sensor_compouse_msg(bool send)
+uint8_t
+SHT4X::sensor_compouse_msg(bool send)
 {
 
 	uint8_t data[6];
@@ -183,7 +163,8 @@ SHT4X::probe()
 	return read_serialnumber();
 }
 
-int SHT4X::init()
+int
+SHT4X::init()
 {
 	if (I2C::init() != PX4_OK) {
 		return PX4_ERROR;
@@ -198,42 +179,27 @@ int SHT4X::init()
 
 
 
-int SHT4X::init_sensor()
+int
+SHT4X::init_sensor()
 {
-	//probe();
-
 	PX4_INFO("Connected to SHT4x sensor, SN: %ld", _sht_info.serial_number);
 	PX4_INFO("Last values, T: %.3f, H: %.3f", (double)measured_temperature, (double)measured_humidity);
 
 	return PX4_OK;
 }
 
-void SHT4X::RunImpl()
+void
+SHT4X::RunImpl()
 {
 	PX4_INFO("SHT4X: RunImpl");
 	sensor_compouse_msg(true);
 }
 
 
-// void
-// SHT4X::action_cli(const BusCLIArguments &cli)
-// {
-// 	switch (cli.custom1) {
-
-// 	case 1: {
-// 			PX4_INFO("Last measured values (%.3fs ago, #%d)", (double)(hrt_absolute_time() - measurement_time) / 1000000.0,
-// 				 measurement_index);
-// 			PX4_INFO("Temp: %.3f, Hum: %.3f", (double)measured_temperature, (double)measured_humidity);
-
-// 		}
-// 		break;
-
-// 	}
-// }
 
 
-
-void SHT4X::print_status()
+void
+SHT4X::print_status()
 {
 	PX4_INFO("SHT4X sensor");
 	I2CSPIDriverBase::print_status();
@@ -241,11 +207,11 @@ void SHT4X::print_status()
 	PX4_INFO("Last measured values (%.3fs ago, #%d)", (double)(hrt_absolute_time() - measurement_time) / 1000000.0,
 		 measurement_index);
 	PX4_INFO("Temp: %.3f, Hum: %.3f", (double)measured_temperature, (double)measured_humidity);
-
 }
 
 
-void SHT4X::print_usage()
+void
+SHT4X::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
@@ -260,12 +226,6 @@ $ sht4x start -X
 $ sht4x status
   Print driver status
 
-$ sht4x values
-  Print last measured values
-
-$ sht4x reset
-  Reinitialize senzor, reset flags
-
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("sht4x", "driver");
@@ -277,11 +237,10 @@ $ sht4x reset
 	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("values", "Print actual data");
-
 }
 
-int sht4x_main(int argc, char *argv[])
+int
+sht4x_main(int argc, char *argv[])
 {
 	using ThisDriver = SHT4X;
 	BusCLIArguments cli{true, false};
@@ -309,11 +268,6 @@ int sht4x_main(int argc, char *argv[])
 	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
 	}
-
-	// if (!strcmp(verb, "values")) {
-	// 	cli.custom1 = 1;
-	// 	return ThisDriver::action_cli(cli, iterator, false);
-	// }
 
 
 	ThisDriver::print_usage();

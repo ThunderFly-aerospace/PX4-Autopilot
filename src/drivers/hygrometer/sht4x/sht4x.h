@@ -89,9 +89,7 @@ public:
 
 	//void action_cli(const BusCLIArguments &cli);
 
-
-	//int read_data(uint8_t command, uint8_t *data_ptr, uint8_t length);
-	int write_data(uint8_t command, uint8_t buffer[], uint8_t length);
+	//int write_data(uint8_t command, uint8_t buffer[], uint8_t length);
 
 	uint8_t read_serialnumber();
 
@@ -108,8 +106,6 @@ private:
 	uint16_t measurement_index = 0;
 
 	sht_info _sht_info;
-	//int _state = sht4x_state::INIT;
-	//int _last_state = sht4x_state::INIT;
 	uint32_t _time_in_state = hrt_absolute_time();
 	uint16_t _last_command = 0;
 	uORB::PublicationMulti<sensor_hygrometer_s> _sensor_hygrometer_pub{ORB_ID(sensor_hygrometer)};

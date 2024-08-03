@@ -142,8 +142,9 @@ void SHT4X::sensor_compouse_msg(bool send)
 int
 SHT4X::probe()
 {
-	return read_serialnumber();
+	//return read_serialnumber();
 	// 0 means I can see sensor
+	return 0;
 }
 
 int SHT4X::init()
@@ -247,7 +248,7 @@ int sht4x_main(int argc, char *argv[])
 {
 	using ThisDriver = SHT4X;
 	BusCLIArguments cli{true, false};
-	cli.default_i2c_frequency = 400000;
+	cli.default_i2c_frequency = 100000;
 	cli.i2c_address = 0x44;
 	cli.support_keep_running = true;
 

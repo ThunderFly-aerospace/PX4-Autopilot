@@ -66,18 +66,20 @@ int S35770::init()
 
 int S35770::probe()
 {
-
-	return PX4_OK;
+	uint32_t raw;
+	return getCounter(&raw);
 }
 
 
-uint32_t S35770::getCounter()
+uint8_t S35770::getCounter(uint32_t* count)
 {
-
 	uint8_t raw[3];
-	transfer(nullptr, 0, &raw[0], 3);
-	return uint32_t(hiWord(raw[0]) << 16 | loWord(raw[1]) << 8 | raw[2]);
+	uint8_t err = transfer(nullptr, 0, &raw[0], 3);
+	*count = uint32_t(hiWord(raw[0]) << 16 | loWord(raw[1]) << 8 | raw[2]);
+
+	return err;
 }
+
 
 void S35770::RunImpl()
 {
@@ -85,7 +87,13 @@ void S35770::RunImpl()
 	uint32_t oldcount = _count;
 	int32_t diffTime = hrt_elapsed_time(&_last_measurement_time);
 
-	_count = getCounter();
+	uint8_t err = getCounter(&_count);
+
+	if (err != PX4_OK) {
+		PX4_ERR("Error reading counter");
+		return;
+	}
+
 	_last_measurement_time = hrt_absolute_time();
 
 	uint32_t diffCount = 0;

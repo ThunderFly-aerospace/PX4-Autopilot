@@ -33,6 +33,6 @@ jobs:
 
       - name: Checkout and rebase branch
         run: |
-          git checkout ${{ matrix.branch }}
+          git checkout origin/${{ matrix.branch }}
           git rebase upstream/main
           git push origin ${{ matrix.branch }} --force

@@ -1,0 +1,38 @@
+name: Update Branches
+
+on:
+  schedule:
+    - cron: '0 0 * * *' 
+  push:
+    branches:
+      - tf/actions/autorebase
+
+jobs:
+  update-branches:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: [tf/SHT4x, tf/s35770]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/PX4/PX4-Autopilot.git
+
+      - name: Fetch all branches
+        run: git fetch --all
+
+      - name: Checkout and rebase branch
+        run: |
+          git checkout ${{ matrix.branch }}
+          git rebase upstream/master
+          git push origin ${{ matrix.branch }} --force

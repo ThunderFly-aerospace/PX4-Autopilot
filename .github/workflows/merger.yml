@@ -1,0 +1,43 @@
+name: Create tf/main_auto Branch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # Spustí se každý den o půlnoci
+
+jobs:
+  create-tf-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/PX4/PX4-Autopilot.git
+
+      - name: Fetch all branches
+        run: git fetch --all
+
+      - name: Create tf/main branch from upstream/main
+        run: |
+          git checkout upstream/main
+          git checkout -b tf/main
+
+      - name: Merge tf/sht4x into tf/main
+        run: |
+          git merge tf/sht4x
+
+      - name: Merge tf/s35770 into tf/main
+        run: |
+          git merge tf/s35770
+
+      - name: Push tf/main branch to origin
+        run: |
+          git push origin tf/build/main --force

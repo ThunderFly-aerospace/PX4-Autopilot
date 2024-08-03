@@ -87,17 +87,18 @@ public:
 	int    init_sensor();
 	void   print_status() override;
 
-	void action_cli(const BusCLIArguments &cli);
+	//void action_cli(const BusCLIArguments &cli);
 
 
-	int read_data(uint8_t command, uint8_t *data_ptr, uint8_t length);
+	//int read_data(uint8_t command, uint8_t *data_ptr, uint8_t length);
 	int write_data(uint8_t command, uint8_t buffer[], uint8_t length);
 
-	int read_serialnumber();
+	uint8_t read_serialnumber();
 
-	void sensor_compouse_msg(bool send);
+	uint8_t sensor_compouse_msg(bool send);
 
 	uint8_t calc_crc(uint8_t data[2]);
+	uint8_t validate_crc(uint8_t data[6]);
 
 private:
 

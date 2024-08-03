@@ -3,8 +3,9 @@ name: Create tf/main_auto Branch
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *' # Spustí se každý den o půlnoci
-
+    - cron: '0 0 * * *'
+  push:
+  
 jobs:
   create-tf-main:
     runs-on: ubuntu-latest

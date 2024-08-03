@@ -1,0 +1,10 @@
+menu "Hygrometers"
+    menuconfig COMMON_HYGROMETERS
+        bool "Hygrometer sensors"
+        default n
+        select DRIVERS_HYGROMETER_SHT3x
+        select DRIVERS_HYGROMETER_SHT4x
+        ---help---
+            Enable default set of hygrometer sensors
+    rsource "*/Kconfig"
+endmenu #Hygrometers

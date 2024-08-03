@@ -29,11 +29,11 @@ jobs:
       - name: Create tf/main branch from upstream/main
         run: |
           git checkout upstream/main
-          git checkout -b tf/main
+          git checkout -b tf/build/main
 
-      - name: Merge tf/sht4x into tf/main
+      - name: Merge tf/SHT4x into tf/main
         run: |
-          git merge tf/sht4x
+          git merge tf/SHT4x
 
       - name: Merge tf/s35770 into tf/main
         run: |

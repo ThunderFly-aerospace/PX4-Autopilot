@@ -1,0 +1,5 @@
+menuconfig DRIVERS_RPM_S35770
+	bool "s35770"
+	default n
+	---help---
+		Enable support for s35770

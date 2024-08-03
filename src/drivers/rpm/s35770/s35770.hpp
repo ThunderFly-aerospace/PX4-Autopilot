@@ -68,13 +68,12 @@ public:
 
 private:
 
-	int  probe()	override;
+	int  probe() override;
 
-	uint8_t       getCounter(uint32_t* count);
+	uint32_t       getCounter();
 
 	uint8_t        hiWord(uint8_t in) { return (in & 0x0fu); }
 	uint8_t        loWord(uint8_t in) { return ((in & 0xf0u) >> 4); }
-
 
 	uint32_t       _count{0};
 	uint16_t       _overflow_count{0};

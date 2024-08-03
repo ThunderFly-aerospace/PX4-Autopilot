@@ -66,21 +66,18 @@ int S35770::init()
 
 int S35770::probe()
 {
-	uint32_t raw;
-	return getCounter(&raw);
+
+	return PX4_OK;
 }
 
 
-uint8_t S35770::getCounter(uint32_t* count)
+uint32_t S35770::getCounter()
 {
+
 	uint8_t raw[3];
-	uint8_t err = transfer(nullptr, 0, &raw[0], 3);
-	// *count = uint32_t(hiWord(raw[0]) << 16 | loWord(raw[1]) << 8 | raw[2]);
-	*count = (uint32_t(raw[0]) << 16) | (uint32_t(raw[1]) << 8) | uint32_t(raw[2]);
-
-	return err;
+	transfer(nullptr, 0, &raw[0], 3);
+	return uint32_t(hiWord(raw[0]) << 16 | loWord(raw[1]) << 8 | raw[2]);
 }
-
 
 void S35770::RunImpl()
 {
@@ -88,14 +85,8 @@ void S35770::RunImpl()
 	uint32_t oldcount = _count;
 	int32_t diffTime = hrt_elapsed_time(&_last_measurement_time);
 
-	uint8_t err = getCounter(&_count);
+	_count = getCounter();
 	_last_measurement_time = hrt_absolute_time();
-
-	if (err != PX4_OK) {
-		PX4_ERR("Error reading counter");
-		return;
-	}
-
 
 	uint32_t diffCount = 0;
 
@@ -103,8 +94,8 @@ void S35770::RunImpl()
 		// Counter overflow occured
 		PX4_INFO("Counter overflow");
 		_overflow_count++;
-		diffCount = (_count + (0xFFFFFF - oldcount) + 1);
-		//return;
+		//diffCount = _count + (0xFFFFFF - oldcount);
+		return;
 
 	} else {
 		// Normal operation

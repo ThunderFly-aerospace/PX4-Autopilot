@@ -1,0 +1,5 @@
+menuconfig MODULES_TFCONTROL
+	bool "tfcontrol"
+	default n
+	---help---
+		Enable tfcontrol app

@@ -630,6 +630,8 @@ int CdcAcmAutostart::print_status()
 	PX4_INFO("Running");
 	PX4_INFO("State: %s", state);
 	PX4_INFO("Protocol: %s", protocol);
+	PX4_INFO("VBUS: %s", _vbus_present ? "present" : "not present");
+	PX4_INFO("USB device: %s", USB_DEVICE_PATH);
 	return PX4_OK;
 }
 

@@ -242,6 +242,7 @@ set(msg_files
 	VelocityLimits.msg
 	WheelEncoders.msg
 	YawEstimatorStatus.msg
+  OutgoingLoraMessage.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
 	versioned/AirspeedValidated.msg

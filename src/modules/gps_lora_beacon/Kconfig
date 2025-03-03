@@ -1,0 +1,5 @@
+menuconfig MODULES_GPS_LORA_BEACON
+	bool "gps_lora_beacon"
+	default n
+	---help---
+		Enable support for TF-LORA beacon service app

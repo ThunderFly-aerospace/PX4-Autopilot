@@ -237,6 +237,7 @@ set(msg_files
 	WheelEncoders.msg
 	Wind.msg
 	YawEstimatorStatus.msg
+  OutgoingLoraMessage.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
 	versioned/ArmingCheckReply.msg

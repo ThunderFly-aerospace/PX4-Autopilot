@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TFLORA
+	bool "tflora"
+	default n
+	---help---
+		Enable support for TF-LORA device

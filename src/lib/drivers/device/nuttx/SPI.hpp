@@ -139,6 +139,21 @@ protected:
 	 */
 	int		transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
+  /**
+   * Perform SPI select separately from tranfer
+   */
+  void select();
+
+  /**
+   * Perform SPI deselect separately from tranfer
+   */
+  void deselect();
+
+  /**
+   * Perform single byte exchange without select/deselect and locking
+   */
+  uint8_t transfer(uint8_t send);
+
 	/**
 	 * Set the SPI bus frequency
 	 * This is used to change frequency on the fly. Some sensors

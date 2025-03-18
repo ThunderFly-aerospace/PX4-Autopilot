@@ -40,7 +40,6 @@ using namespace time_literals;
 
 TFLORA::TFLORA(const I2CSPIDriverConfig &config) :
 	SPI(config),
-  ModuleParams(nullptr),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio)
 {
@@ -82,49 +81,10 @@ int TFLORA::init()
 		return PX4_ERROR;
 	}
 
-  //TODO: parse params to local   
-  NWKSKEY[0]=(_param_nwkskey_0.get() & 0xFF000000)>>24;
-  NWKSKEY[1]=(_param_nwkskey_0.get() & 0x00FF0000)>>16;
-  NWKSKEY[2]=(_param_nwkskey_0.get() & 0x0000FF00)>>8;
-  NWKSKEY[3]=(_param_nwkskey_0.get() & 0x000000FF);
-  NWKSKEY[4]=(_param_nwkskey_1.get() & 0xFF000000)>>24;
-  NWKSKEY[5]=(_param_nwkskey_1.get() & 0x00FF0000)>>16;
-  NWKSKEY[6]=(_param_nwkskey_1.get() & 0x0000FF00)>>8;
-  NWKSKEY[7]=(_param_nwkskey_1.get() & 0x000000FF);
-  NWKSKEY[8]=(_param_nwkskey_2.get() & 0xFF000000)>>24;
-  NWKSKEY[9]=(_param_nwkskey_2.get() & 0x00FF0000)>>16;
-  NWKSKEY[10]=(_param_nwkskey_2.get() & 0x0000FF00)>>8;
-  NWKSKEY[11]=(_param_nwkskey_2.get() & 0x000000FF);
-  NWKSKEY[12]=(_param_nwkskey_3.get() & 0xFF000000)>>24;
-  NWKSKEY[13]=(_param_nwkskey_3.get() & 0x00FF0000)>>16;
-  NWKSKEY[14]=(_param_nwkskey_3.get() & 0x0000FF00)>>8;
-  NWKSKEY[15]=(_param_nwkskey_3.get() & 0x000000FF);
-
-  APPSKEY[0]=(_param_appkey_0.get() & 0xFF000000)>>24;
-  APPSKEY[1]=(_param_appkey_0.get() & 0x00FF0000)>>16;
-  APPSKEY[2]=(_param_appkey_0.get() & 0x0000FF00)>>8;
-  APPSKEY[3]=(_param_appkey_0.get() & 0x000000FF);
-  APPSKEY[4]=(_param_appkey_1.get() & 0xFF000000)>>24;
-  APPSKEY[5]=(_param_appkey_1.get() & 0x00FF0000)>>16;
-  APPSKEY[6]=(_param_appkey_1.get() & 0x0000FF00)>>8;
-  APPSKEY[7]=(_param_appkey_1.get() & 0x000000FF);
-  APPSKEY[8]=(_param_appkey_2.get() & 0xFF000000)>>24;
-  APPSKEY[9]=(_param_appkey_2.get() & 0x00FF0000)>>16;
-  APPSKEY[10]=(_param_appkey_2.get() & 0x0000FF00)>>8;
-  APPSKEY[11]=(_param_appkey_2.get() & 0x000000FF);
-  APPSKEY[12]=(_param_appkey_3.get() & 0xFF000000)>>24;
-  APPSKEY[13]=(_param_appkey_3.get() & 0x00FF0000)>>16;
-  APPSKEY[14]=(_param_appkey_3.get() & 0x0000FF00)>>8;
-  APPSKEY[15]=(_param_appkey_3.get() & 0x000000FF);
-
-  int32_t addr=_param_devaddr.get();
-  DEVADDR=*((uint32_t*)(&addr));
-
-  for(int i=0;i<16;i++)
-    PX4_INFO("%x ", NWKSKEY[i] & 0xff);
-
-  for(int i=0;i<16;i++)
-    PX4_INFO("%x ", APPSKEY[i] & 0xff);
+  if(parseConfig()!=0){
+		PX4_ERR("error parsing config file tflora.txt");
+		return PX4_ERROR;
+	}
 
   RadioInterruptConfigure();
 
@@ -134,9 +94,6 @@ int TFLORA::init()
 	return 0;
 }
 
-void TFLORA::parameters_update()
-{
-}
 
 void TFLORA::exit_and_cleanup()
 {
@@ -164,7 +121,7 @@ int TFLORA::probe()
   PX4_INFO ("TFLORA Probe!");
   if(this->ReadReg(REG_LORASYNCWORDLSB) == 0x24)
   {
-    PX4_INFO ("I see the fire!");
+    PX4_INFO ("I see the tflora!");
     return PX4_OK;
   }
 
@@ -315,35 +272,140 @@ void TFLORA::hal_enableIrq()
   irq_enabled=1;
 };
 
-bool TFLORA::parse_hex(const char *argname, const char *s, uint8_t *t, int hexlen)
+int TFLORA::readKey(FILE * f,uint8_t *output, int len)
 {
-    for (int i = 0; i < hexlen; i++) {
-        int n = -1;
-        char c = s[i];
-        if (c >= '0' && c <= '9')
-            n = c - '0';
-        else if (c >= 'a' && c <= 'f')
-            n = c - 'a' + 10;
-        else if (c >= 'A' && c <= 'F')
-            n = c - 'A' + 10;
-        else if (c == '\0')
-            fprintf(stderr, "%s: argument short\n", argname);
-        else
-            fprintf(stderr, "%s: unexpected character: '%c'\n", argname, c);
-        if (n == -1)
-            return false;
+  int i=0;
+  while(i<2*len)
+  {
+    char c;
+    int n = -1;
+    if(1!=fread(&c,1,1,f))
+      return -1;
 
-        if (i % 2 == 0)
-            *t = n << 4;
-        else
-            *t++ |= n;
+    if(c==' ')
+      continue;
+
+    if(c=='\n'||c=='\r')
+      return -1;
+
+    if (c >= '0' && c <= '9')
+        n = c - '0';
+    else if (c >= 'a' && c <= 'f')
+        n = c - 'a' + 10;
+    else if (c >= 'A' && c <= 'F')
+        n = c - 'A' + 10;
+    else
+    {
+        fprintf(stderr, "Unexpected character: '%c'\n", c);
+        return -1;
     }
-    if (s[hexlen] != '\0') {
-        fprintf(stderr, "%s: argument too long\n", argname);
-        return false;
-    }
-    return true;
+
+    if (n == -1)
+        return -1;
+
+    if (i % 2 == 0)
+        *output = n << 4;
+    else
+        *output++ |= n;
+
+    i++;
+  }
+  return 0;
 }
+
+int TFLORA::parseConfig()
+{
+
+	FILE* conf_fd = fopen(CONF_FILE, "r");
+  if(conf_fd==NULL)
+  {
+    fprintf(stderr,"Cannot open config file: %s",CONF_FILE);
+    return -1;
+  }  
+
+  char k;
+  uint8_t state=0; //0 - line begin, 1 - wait for '\n'
+  while(1)
+  {
+    if(fread(&k,1,1,conf_fd)!=1)
+      break;
+
+    if(state==0)
+    {
+      if(k=='\n')
+        continue;
+
+      char sec;
+      if(fread(&sec,1,1,conf_fd)!=1)
+        break;
+
+      if(sec=='\n')
+        continue;
+
+      if(sec!=':')
+        k='\0';
+      
+      if(k=='a')
+        if(readKey(conf_fd,APPSKEY, 16)!=0)
+        {
+          printf("error reading application key");
+        }
+
+      if(k=='n')
+        if(readKey(conf_fd,NWKSKEY, 16)!=0)
+        {
+          printf("error reading network key");
+        }
+
+      if(k=='d')
+      {
+        DEVADDR=0;
+        uint8_t b[4];
+        if(readKey(conf_fd,b, 4)!=0)
+        {
+          printf("error reading dev addr");
+        }
+        else
+        { 
+          DEVADDR = ((uint32_t) b[0]) << 24 \
+          | ((uint32_t) b[1]) << 16 \
+          | ((uint32_t) b[2]) << 8 \
+          | ((uint32_t) b[3]);
+        }
+      }
+
+      state=1;
+      continue;    
+    }
+    
+    if(state==1)
+    {
+      if(k=='\n')
+        state=0;
+    }    
+
+  }
+
+  fclose(conf_fd);
+
+  printf("app: ");
+  for(int i=0;i<16;i++)
+    printf("%02x ",NWKSKEY[i]);
+  printf("\n");
+
+  printf("net: ");
+  for(int i=0;i<16;i++)
+    printf("%02x ",APPSKEY[i]);
+  printf("\n");
+
+  printf("dev: %lu ",DEVADDR);
+  for(int i=3;i>=0;i--)
+    printf("%02x ",(uint8_t)((DEVADDR>> i*8) & 0xFF));
+  printf("\n");
+
+  return 0;
+}
+
 
 #define CMD_READREGISTER                0x1D
 void TFLORA::ReadRegs (uint16_t addr, uint8_t* data, uint8_t len) {

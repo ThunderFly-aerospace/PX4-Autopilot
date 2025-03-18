@@ -50,7 +50,7 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortF, GPIO::Pin10}),
 		}),
 		initSPIBusExternal(SPI::Bus::SPI5, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin10}),
 			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
 			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin11})
 		}),

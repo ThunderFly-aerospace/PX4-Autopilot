@@ -59,9 +59,9 @@ extern "C"{
 }
 
 
-//using namespace TFLORA;
+static const char *CONF_FILE = PX4_ROOTFSDIR"/fs/microsd/tflora.txt";
 
-class TFLORA : public device::SPI, public ModuleParams, public I2CSPIDriver<TFLORA>
+class TFLORA : public device::SPI, public I2CSPIDriver<TFLORA>
 {
 public:
 	TFLORA(const I2CSPIDriverConfig &config);
@@ -88,6 +88,8 @@ public:
   void hal_enableIrq();
 
 private:
+
+
 	void exit_and_cleanup() override;
 	int probe() override;
   void ReadRegs (uint16_t addr, uint8_t* data, uint8_t len);
@@ -102,6 +104,9 @@ private:
 	bool RadioInterruptDisable();
 
 	const spi_drdy_gpio_t _drdy_gpio;
+
+  int parseConfig();
+  int readKey(FILE * f,uint8_t *output, int len);
 
 	enum class STATE : uint8_t {
 		SLEEPING_FOREVER,
@@ -139,19 +144,6 @@ private:
   // LoRaWAN end-device address (DevAddr)
   u4_t DEVADDR;
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::TTN_NSKEY_0>) _param_nwkskey_0,
-		(ParamInt<px4::params::TTN_NSKEY_1>) _param_nwkskey_1,
-		(ParamInt<px4::params::TTN_NSKEY_2>) _param_nwkskey_2,
-		(ParamInt<px4::params::TTN_NSKEY_3>) _param_nwkskey_3,
-
-		(ParamInt<px4::params::TTN_APPKEY_0>) _param_appkey_0,
-		(ParamInt<px4::params::TTN_APPKEY_1>) _param_appkey_1,
-		(ParamInt<px4::params::TTN_APPKEY_2>) _param_appkey_2,
-		(ParamInt<px4::params::TTN_APPKEY_3>) _param_appkey_3,
-
-    (ParamInt<px4::params::TTN_DEVADDR>) _param_devaddr
-	)
 
   void parameters_update();
 };

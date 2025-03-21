@@ -156,4 +156,21 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
+	reporter.failsafeFlags().fd_accel_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_ACCEL;
+
+	if (reporter.failsafeFlags().fd_accel_failure) {
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * This check can be configured via <param>FD_ACCEL_THR</param> parameter.
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_accel"),
+				       events::Log::Critical, "Acceleration failure detected");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Acceleration failure detected");
+		}
+	}
+
 }

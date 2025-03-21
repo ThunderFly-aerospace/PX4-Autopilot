@@ -63,6 +63,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
+#include <uORB/topics/sensor_accel.h>
 
 union failure_detector_status_u {
 	struct {
@@ -74,6 +75,7 @@ union failure_detector_status_u {
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
 		uint16_t motor : 1;
+		uint16_t accel : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -112,6 +114,7 @@ private:
 	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateImbalancedPropStatus();
+	void updateOverAccelerationStatus();
 
 	failure_detector_status_u _status{};
 
@@ -138,6 +141,7 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
 
 	FailureInjector _failure_injector;
 
@@ -155,6 +159,7 @@ private:
 		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_actuator_en,
 		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_motor_throttle_thres,
 		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_motor_current2throttle_thres,
-		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_motor_time_thres
+		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_motor_time_thres,
+		(ParamFloat<px4::params::FD_ACCEL_THR>) _param_fd_accel_thr
 	)
 };

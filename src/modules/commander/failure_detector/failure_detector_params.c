@@ -212,3 +212,33 @@ PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 2.0f);
  * @increment 100
  */
 PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 100);
+
+/**
+ * Acceleration threshold
+ *
+ * Value at which the acceleration magnitude triggers a failure.
+ *
+ * Setting this value to 0 disables the feature.
+ *
+ * @min 0
+ * @max 100
+ * @unit m/s^2
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_ACCEL_THR, 100.0f);
+
+/**
+ * Acceleration failure action
+ *
+ * Action to take when acceleration exceeds the threshold.
+ *
+ * @min -1
+ * @max 3
+ * @value -1 Disabled
+ * @value 0 Warning
+ * @value 1 Return
+ * @value 2 Land
+ * @value 3 Terminate
+ * @group Failsafe
+ */
+PARAM_DEFINE_INT32(COM_ACCEL_ACT, -1);

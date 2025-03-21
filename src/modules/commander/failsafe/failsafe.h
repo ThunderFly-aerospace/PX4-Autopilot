@@ -147,6 +147,14 @@ private:
 		Return_mode = 3
 	};
 
+	enum class accel_failsafe_mode : int32_t {
+		Disabled = -1,
+		Warning = 0,
+		Return = 1,
+		Land = 2,
+		Terminate = 3,
+	};
+
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);
@@ -157,6 +165,7 @@ private:
 	static Action fromOffboardLossActParam(int param_value, uint8_t &user_intended_mode);
 	static ActionOptions fromHighWindLimitActParam(int param_value);
 	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
+	static ActionOptions fromAccelActParam(int param_value);
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};
@@ -190,7 +199,8 @@ private:
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act,
-					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act
+					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
+					(ParamInt<px4::params::COM_ACCEL_ACT>) _param_com_accel_act
 				       );
 
 };

@@ -442,6 +442,39 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 	return options;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromAccelActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (accel_failsafe_mode(param_value)) {
+	case accel_failsafe_mode::Disabled:
+	default:
+		options.action = Action::None;
+		break;
+
+	case accel_failsafe_mode::Warning:
+		options.action = Action::Warn;
+		break;
+
+	case accel_failsafe_mode::Return:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case accel_failsafe_mode::Land:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case accel_failsafe_mode::Terminate:
+		options.action = Action::Terminate;
+		options.clear_condition = ClearCondition::Never;
+		break;
+	}
+
+	return options;
+}
+
 void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 				 const failsafe_flags_s &status_flags)
 {
@@ -617,6 +650,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, fromImbalancedPropActParam(_param_com_imb_prop_act.get()));
 	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
+	CHECK_FAILSAFE(status_flags, fd_accel_failure, fromAccelActParam(_param_com_accel_act.get()));
 
 
 

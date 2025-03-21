@@ -1930,6 +1930,7 @@ void Commander::run()
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
+			fd_status.fd_accel = _failure_detector.getStatusFlags().accel;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
 			fd_status.timestamp = hrt_absolute_time();

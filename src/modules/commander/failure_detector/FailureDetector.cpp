@@ -203,6 +203,10 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		updateImbalancedPropStatus();
 	}
 
+	if (_param_fd_accel_thr.get() > 0) {
+		updateOverAccelerationStatus();
+	}
+
 	return _status.value != status_prev.value;
 }
 
@@ -470,5 +474,24 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 
 		_motor_failure_esc_under_current_mask = 0;
 		_status.flags.motor = false;
+	}
+}
+
+void FailureDetector::updateOverAccelerationStatus()
+{
+	sensor_accel_s sensor_accel;
+
+	if (_sensor_accel_sub.update(&sensor_accel)) {
+		const float accel_magnitude = sqrtf(sensor_accel.x * sensor_accel.x +
+						    sensor_accel.y * sensor_accel.y +
+						    sensor_accel.z * sensor_accel.z);
+
+		if (accel_magnitude > _param_fd_accel_thr.get()) {
+			_status.flags.accel = true;
+			PX4_INFO("acceleration failure detected: %f", (double)accel_magnitude);
+
+		} else {
+			_status.flags.accel = false;
+		}
 	}
 }

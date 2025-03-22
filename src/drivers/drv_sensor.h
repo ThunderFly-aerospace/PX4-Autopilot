@@ -248,6 +248,8 @@
 
 #define DRV_MAG_DEVTYPE_BMM350      	0xE5
 
+#define DRV_ESC_TFESC03 0xE6
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */

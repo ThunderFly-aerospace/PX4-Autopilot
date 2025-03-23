@@ -36,11 +36,9 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		TFESC03.cpp
-		TFESC03.hpp
+		TFESC03_common.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
-#		led
 		mixer_module
-		tunes
 	)

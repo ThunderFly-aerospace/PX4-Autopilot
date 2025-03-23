@@ -1,35 +1,3 @@
-/****************************************************************************
- *
- *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
-
 #include "TFESC03.hpp"
 
 #include <px4_platform_common/sem.hpp>
@@ -57,15 +25,15 @@ TFESC03::~TFESC03()
 
 int TFESC03::init()
 {
-	PX4_INFO("Initialize I2C device here.");
 	return 0;
 }
 
 void TFESC03::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 {
-	PX4_INFO("Send ESC outputs");
+	//PX4_INFO("Send ESC outputs");
 	for (uint8_t i = 0; i < motor_cnt; i++) {
-		PX4_INFO("Target power for motor %u: %u", i, (unsigned)pwm[i]);
+		//PX4_INFO("Target power for motor %u: %u", i, (unsigned)pwm[i]);
+		_tfesc03_common->setMotorSpeed(i, pwm[i]);
 	}
 	// Placeholder for I2C write
 }
@@ -73,7 +41,7 @@ void TFESC03::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 bool TFESC03::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_outputs,
 			    unsigned num_control_groups_updated)
 {
-	PX4_INFO("Update outputs");
+	//PX4_INFO("Update outputs");
 	if (_initialized) {
 		uint16_t motor_out[8] {0};
 
@@ -87,18 +55,18 @@ bool TFESC03::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_
 		// Remove parsing real feedback, set dummy data
 		for (uint8_t i = 0; i < num_outputs; i++) {
 			_esc_feedback.esc[i].timestamp = hrt_absolute_time();
-			_esc_feedback.esc[i].esc_rpm = motor_out[i] * 10; // example dummy speed
+			_esc_feedback.esc[i].esc_rpm = motor_out[i] * 10;
 			_esc_feedback.esc[i].esc_voltage = 8.5f;
-			_esc_feedback.esc[i].esc_current = motor_out[i] * 0.01f; // example dummy current
-			_esc_feedback.esc[i].esc_state = 0; // arbitrary
+			_esc_feedback.esc[i].esc_current = motor_out[i] * 0.01f;
+			_esc_feedback.esc[i].esc_state = 0;
 		}
 		_esc_feedback.esc_count = num_outputs;
 		_esc_feedback.timestamp = hrt_absolute_time();
 		_esc_feedback_pub.publish(_esc_feedback);
 
-		PX4_INFO("Published esc feedback");
-		PX4_INFO("RPM: %u, Voltage: %.2f, Current: %.2f", (unsigned)_esc_feedback.esc[0].esc_rpm,
-			 (double)_esc_feedback.esc[0].esc_voltage, (double)_esc_feedback.esc[0].esc_current);
+		// PX4_INFO("Published esc feedback");
+		// PX4_INFO("RPM: %u, Voltage: %.2f, Current: %.2f", (unsigned)_esc_feedback.esc[0].esc_rpm,
+		// 	 (double)_esc_feedback.esc[0].esc_voltage, (double)_esc_feedback.esc[0].esc_current);
 
 		return true;
 	}
@@ -131,7 +99,7 @@ void TFESC03::Run()
 	}
 
 	if (!_initialized) {
-		PX4_INFO("Not initialized");
+		//PX4_INFO("Not initialized");
 		if (init() == PX4_OK) {
 			_initialized = true;
 
@@ -144,9 +112,9 @@ void TFESC03::Run()
 		_mixing_output.update();
 
 		/* update output status if armed */
-		bool outputs_on;
-		outputs_on = _mixing_output.armed().armed;
-		PX4_INFO("Outputs on: %d", outputs_on);
+		//bool outputs_on;
+		//outputs_on = _mixing_output.armed().armed;
+		//PX4_INFO("Outputs on: %d", outputs_on);
 
 	}
 
@@ -163,6 +131,11 @@ int TFESC03::task_spawn(int argc, char *argv[])
 	if (instance) {
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
+
+		instance->_tfesc03_common = new TFESC03_COMMON(1, 0x01);
+		if(instance->_tfesc03_common == nullptr) {
+			return PX4_ERROR;
+		}
 
 		if (instance->init() == PX4_OK) {
 			instance->ScheduleNow();

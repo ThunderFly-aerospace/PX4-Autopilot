@@ -33,8 +33,7 @@
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
 
-
-
+#include "TFESC03_common.hpp"
 
 
 #if !defined(BOARD_TAP_ESC_MODE)
@@ -76,38 +75,25 @@ private:
 	void Run() override;
 	inline void send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt);
 
+	TFESC03_COMMON *_tfesc03_common = nullptr;
+
 	MixingOutput		_mixing_output;
 	perf_counter_t		_cycle_perf{nullptr};
 	perf_counter_t		_interval_perf{nullptr};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-
-
 	bool _initialized{false};
-	//char _device[DEVICE_ARGUMENT_MAX_LENGTH] {};
-	//int  _uart_fd{-1};
-
-	// const uint8_t _device_mux_map[TAP_ESC_MAX_MOTOR_NUM]  = ESC_POS;
-	// const uint8_t _device_dir_map[TAP_ESC_MAX_MOTOR_NUM]  = ESC_DIR;
-
-	// ESC_UART_BUF _uartbuf{};
-	// EscPacket    _packet{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_feedback_pub{ORB_ID(esc_status)};
 	esc_status_s      _esc_feedback{};
 	uint8_t    	  _channels_count{0}; 		///< number of ESC channels
 	uint8_t 	  _responding_esc{0};
 
-
-	Tunes _tunes{};
 	uORB::Subscription _tune_control_sub{ORB_ID(tune_control)};
 	hrt_abstime _interval_timestamp{0};
 	unsigned int _silence_length{0};	///< If nonzero, silence before next note.
 	unsigned int _frequency{0};
 	unsigned int _duration{0};
 
-	//LedControlData _led_control_data{};
-	//LedController  _led_controller{};
-	//perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };

@@ -74,9 +74,10 @@ int TFLORA::init()
 		return ret;
 	}
 
-	outgoing_lora_message_sub.set_interval_us(50_ms);
+	lora_outgoing_message_sub.set_interval_us(50_ms);
+  lora_incoming_message_pub.advertise();
 
-	if (!outgoing_lora_message_sub.registerCallback()) {
+	if (!lora_outgoing_message_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return PX4_ERROR;
 	}
@@ -133,9 +134,9 @@ void TFLORA::RunImpl()
 	const hrt_abstime now = hrt_absolute_time();
 
   //check message
-  if (outgoing_lora_message_sub.updated()) 
+  if (lora_outgoing_message_sub.updated()) 
   {
-		if (outgoing_lora_message_sub.copy(&outMsg)) 
+		if (lora_outgoing_message_sub.copy(&outMsg)) 
     {
 			PX4_INFO("recieved lora message for send");
     }
@@ -270,7 +271,27 @@ void TFLORA::hal_enableIrq()
     irq_time=0;
   }
   irq_enabled=1;
-};
+}
+
+void TFLORA::processDownlink(uint8_t *data, int dataLen)
+{
+   
+    for(int i=0;i<dataLen;i++)
+    {
+        printf("%0x ", (int)(data[i]));
+    }
+    printf("\n");
+
+    lora_message_s msg{};
+    msg.timestamp = hrt_absolute_time();    
+    msg.len = dataLen;
+    if(msg.len>58)
+      msg.len=58;
+    for(int i=0;i<msg.len;i++)
+      msg.data[i]=data[i];
+    lora_incoming_message_pub.publish(msg);
+
+}
 
 int TFLORA::readKey(FILE * f,uint8_t *output, int len)
 {
@@ -444,15 +465,6 @@ void TFLORA::wait_busy_pin()
     if(counter>=100000000ul)
       printf("wait.. for busy... timeout: %lld \n",counter);
 }
-
-//TODO: Load from params
-
-/*  // LoRaWAN NwkSKey, network session key
-  u1_t NWKSKEY[16] = { 0x6D, 0x4C, 0x27, 0x9A, 0xD1, 0xF5, 0x3F, 0x24, 0x03, 0xA8, 0xFF, 0x98, 0x79, 0x6E, 0x3D, 0xC9 };
-  // LoRaWAN AppSKey, application session key
-  u1_t APPSKEY[16]  = { 0x02, 0xCC, 0x72, 0xDE, 0x1A, 0x38, 0x13, 0x62, 0x6B, 0xC4, 0x44, 0xCC, 0x3B, 0x04, 0x6D, 0xCE };
-  // LoRaWAN end-device address (DevAddr)
-  u4_t DEVADDR  = 0x26011483;*/
 
 void TFLORA::init_lmic()
 {

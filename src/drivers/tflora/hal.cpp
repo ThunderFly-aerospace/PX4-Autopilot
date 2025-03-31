@@ -308,7 +308,20 @@ void onLmicEvent (ev_t ev) {
             if (LMIC.txrxFlags & TXRX_ACK)
               printf("Received ack\n");
             if (LMIC.dataLen)
-              printf("Received %d bytes of payload\n", LMIC.dataLen);
+            {
+              uint8_t fPort = LMIC.frame[LMIC.dataBeg -1];              
+              printf("Received %d bytes of payload for port %d\n", LMIC.dataLen,(int)fPort);
+              if(fPort!=0)
+              {
+                if(tflora==nullptr)
+                {
+                  printf("tflora empty\n");
+                  break;
+                }
+                uint8_t *data=LMIC.frame + LMIC.dataBeg;
+                tflora->processDownlink(data,LMIC.dataLen);
+              }
+            }
             break;
         case EV_LOST_TSYNC:
             printf("EV_LOST_TSYNC\n");

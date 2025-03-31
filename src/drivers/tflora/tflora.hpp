@@ -49,8 +49,9 @@
 #include <px4_platform_common/module_params.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/outgoing_lora_message.h>
+#include <uORB/topics/lora_message.h>
 
 #undef ASSERT
 extern "C"{
@@ -87,15 +88,17 @@ public:
   void hal_disableIrq();
   void hal_enableIrq();
 
-private:
+  void processDownlink(uint8_t *data, int dataLen);
 
+private:
 
 	void exit_and_cleanup() override;
 	int probe() override;
   void ReadRegs (uint16_t addr, uint8_t* data, uint8_t len);
   uint8_t ReadReg (uint16_t addr);
 
-  uORB::SubscriptionCallbackWorkItem outgoing_lora_message_sub{this, ORB_ID(outgoing_lora_message)};
+  uORB::SubscriptionCallbackWorkItem lora_outgoing_message_sub{this, ORB_ID(lora_outgoing_message)};
+  uORB::Publication<lora_message_s> lora_incoming_message_pub{ORB_ID(lora_incoming_message)};
 
   //real interupt handling
 	static int RadioInterruptCallback(int irq, void *context, void *arg);
@@ -115,7 +118,8 @@ private:
 	} _state{STATE::SLEEPING_FOREVER};
 
 
-  outgoing_lora_message_s outMsg;
+  lora_message_s outMsg;
+  //lora_message_s inMsg;
   osjob_t* currentJob;
 
   int ordinary_dr=EU_DR_SF7; //TODO - from param
@@ -144,8 +148,6 @@ private:
   // LoRaWAN end-device address (DevAddr)
   u4_t DEVADDR;
 
-
-  void parameters_update();
 };
 
 

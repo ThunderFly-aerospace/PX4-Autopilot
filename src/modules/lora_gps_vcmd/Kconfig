@@ -1,0 +1,6 @@
+menuconfig MODULES_LORA_GPS_VCMD
+	bool "lora_gps_vcmd"
+	default n
+	---help---
+		Send GPS beacon over Lora, Recieve VehicleCommand
+

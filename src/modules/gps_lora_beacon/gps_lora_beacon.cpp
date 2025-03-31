@@ -6,7 +6,7 @@
 #include <px4_platform_common/posix.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/outgoing_lora_message.h>
+#include <uORB/topics/lora_message.h>
 #include <drivers/drv_hrt.h>
 
 extern "C" __EXPORT int gps_lora_beacon_main(int argc, char *argv[]);
@@ -89,7 +89,7 @@ int gps_lora_beacon_thread_main(int argc, char *argv[])
 {
     uint64_t last_packet = 0;
     struct sensor_gps_s last_good_fix;
-    struct outgoing_lora_message_s outgoing;
+    struct lora_message_s outgoing;
     memset(&last_good_fix, 0, sizeof(last_good_fix));
 
     PX4_INFO("Hello from GPS Lora Beacon!");
@@ -97,7 +97,7 @@ int gps_lora_beacon_thread_main(int argc, char *argv[])
     int gps_sub_fd = orb_subscribe(ORB_ID(sensor_gps));
     orb_set_interval(gps_sub_fd, 200); /* limit the update rate to 5 Hz */
 
-    orb_advert_t outgoing_pub = orb_advertise(ORB_ID(outgoing_lora_message), &outgoing);
+    orb_advert_t outgoing_pub = orb_advertise(ORB_ID(lora_outgoing_message), &outgoing);
 
     px4_pollfd_struct_t fds[] = {
         { .fd = gps_sub_fd,   .events = POLLIN },
@@ -137,7 +137,7 @@ int gps_lora_beacon_thread_main(int argc, char *argv[])
 
         if ((hrt_absolute_time() - last_packet) > ((uint64_t) period_s)*1000*1000) {
             outgoing.len = fill_lora_msg(&last_good_fix, outgoing.data, sizeof(outgoing.data));
-            orb_publish(ORB_ID(outgoing_lora_message), outgoing_pub, &outgoing);
+            orb_publish(ORB_ID(lora_outgoing_message), outgoing_pub, &outgoing);
             last_packet = hrt_absolute_time();
         }
     }

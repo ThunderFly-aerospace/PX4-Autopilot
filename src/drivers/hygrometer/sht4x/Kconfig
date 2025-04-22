@@ -1,0 +1,5 @@
+menuconfig DRIVERS_HYGROMETER_SHT4x
+	bool "SHT4x temperature and humidity sensor"
+	default n
+	---help---
+		Enable support SHT4x temperature/humidity sensor

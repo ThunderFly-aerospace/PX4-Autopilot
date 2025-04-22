@@ -45,7 +45,6 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
-	add_optional_topic("ackermann_velocity_setpoint", 100);
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
@@ -119,6 +118,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
 	add_optional_topic("sensor_airflow", 100);
+	add_topic("safety");
 	add_topic("sensor_combined");
 	add_optional_topic("sensor_correction");
 	add_optional_topic("sensor_gyro_fft", 50);
@@ -158,6 +158,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
 	add_optional_topic_multi("sensor_hygrometer", 500, 4);
+	add_optional_topic_multi("sensor_airborne_particles", 500, 4);
 	add_optional_topic_multi("rpm", 200);
 	add_topic_multi("timesync_status", 1000, 3);
 	add_optional_topic_multi("telemetry_status", 1000, 4);

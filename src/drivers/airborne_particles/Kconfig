@@ -1,0 +1,10 @@
+menu "AIRBORNE_PARTICLES"
+    menuconfig DRIVERS_AIRBORNE_PARTICLES_SENSIRION_AP
+        bool "Common airborne particles sensors"
+        default n
+        select DRIVERS_SENSIRION_AP
+        ---help---
+            Enable default set of atmospheric quantities sensors
+
+    rsource "*/Kconfig"
+endmenu

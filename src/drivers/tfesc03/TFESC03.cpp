@@ -2,46 +2,60 @@
 
 #include <px4_platform_common/sem.hpp>
 
-TFESC03::TFESC03(const char *device, uint8_t channels_count) :
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
+TFESC03::TFESC03(I2CSPIBusOption bus_option, int bus, int addr, uint8_t channels_count) :
+	OutputModuleInterface(MODULE_NAME, px4::i2c_spi_to_wq(bus_option, bus)),
 	_mixing_output{"TFESC03", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
 	_channels_count(channels_count)
 {
-	//strncpy(_device, device, sizeof(_device) - 1);
-	//_device[sizeof(_device) - 1] = '\0';  // Fix in case of overflow
-
 	_mixing_output.setAllFailsafeValues(0);
 	_mixing_output.setAllDisarmedValues(0);
 	_mixing_output.setAllMinValues(0);
 	_mixing_output.setAllMaxValues(100);
 
+	// Create the I2C driver instance
+	I2CSPIDriverConfig config{};
+	config.bus = bus;
+	config.i2c_address = addr;
+	config.bus_frequency = 100000;
+	config.spi_devid = 0;
+	config.drdy_gpio = 0;
+	config.spi_mode = 0;
+	config.bus_option = bus_option;
+	config.keep_running = true;
+
+	_tfesc03_common = new TFESC03_COMMON(config);
 }
 
 TFESC03::~TFESC03()
 {
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
+
+	if (_tfesc03_common != nullptr) {
+		delete _tfesc03_common;
+	}
 }
 
 int TFESC03::init()
 {
-	return 0;
+	if (_tfesc03_common == nullptr) {
+		PX4_ERR("TFESC03_common driver is null");
+		return PX4_ERROR;
+	}
+
+	return _tfesc03_common->init();
 }
 
 void TFESC03::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 {
-	//PX4_INFO("Send ESC outputs");
 	for (uint8_t i = 0; i < motor_cnt; i++) {
-		//PX4_INFO("Target power for motor %u: %u", i, (unsigned)pwm[i]);
 		_tfesc03_common->setMotorSpeed(i, pwm[i]);
 	}
-	// Placeholder for I2C write
 }
 
 bool TFESC03::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_outputs,
 			    unsigned num_control_groups_updated)
 {
-	//PX4_INFO("Update outputs");
 	if (_initialized) {
 		uint16_t motor_out[8] {0};
 
@@ -49,10 +63,9 @@ bool TFESC03::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_
 			motor_out[i] = outputs[i];
 		}
 
-
 		send_esc_outputs(motor_out, num_outputs);
 
-		// Remove parsing real feedback, set dummy data
+		// Create dummy feedback data
 		for (uint8_t i = 0; i < num_outputs; i++) {
 			_esc_feedback.esc[i].timestamp = hrt_absolute_time();
 			_esc_feedback.esc[i].esc_rpm = motor_out[i] * 10;
@@ -63,10 +76,6 @@ bool TFESC03::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_
 		_esc_feedback.esc_count = num_outputs;
 		_esc_feedback.timestamp = hrt_absolute_time();
 		_esc_feedback_pub.publish(_esc_feedback);
-
-		// PX4_INFO("Published esc feedback");
-		// PX4_INFO("RPM: %u, Voltage: %.2f, Current: %.2f", (unsigned)_esc_feedback.esc[0].esc_rpm,
-		// 	 (double)_esc_feedback.esc[0].esc_voltage, (double)_esc_feedback.esc[0].esc_current);
 
 		return true;
 	}
@@ -99,25 +108,15 @@ void TFESC03::Run()
 	}
 
 	if (!_initialized) {
-		//PX4_INFO("Not initialized");
 		if (init() == PX4_OK) {
 			_initialized = true;
-
 		} else {
 			PX4_ERR("init failed");
 			exit_and_cleanup();
 		}
-
 	} else {
 		_mixing_output.update();
-
-		/* update output status if armed */
-		//bool outputs_on;
-		//outputs_on = _mixing_output.armed().armed;
-		//PX4_INFO("Outputs on: %d", outputs_on);
-
 	}
-
 
 	_mixing_output.updateSubscriptions(true);
 
@@ -126,30 +125,47 @@ void TFESC03::Run()
 
 int TFESC03::task_spawn(int argc, char *argv[])
 {
-	TFESC03 *instance = new TFESC03(argv[1], (uint8_t)atoi(argv[2]));
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = 0x01;
+	cli.support_keep_running = true;
+	cli.default_channels = 4;
 
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
-		instance->_tfesc03_common = new TFESC03_COMMON(1, 0x01);
-		if(instance->_tfesc03_common == nullptr) {
-			return PX4_ERROR;
-		}
-
-		if (instance->init() == PX4_OK) {
-			instance->ScheduleNow();
-			return PX4_OK;
-
-		} else {
-			instance->ScheduleClear();
-			_object.store(nullptr);
-			delete instance;
-			return PX4_ERROR;
-		}
+	if (!verb) {
+		TFESC03::print_usage();
+		return -1;
 	}
 
-	return PX4_ERROR;
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_ESC_DEVTYPE_TFESC03);
+
+	if (!strcmp(verb, "start")) {
+		// Loop through all instances
+		while (iterator.next()) {
+			TFESC03 *instance = new TFESC03(
+				iterator.busType(), iterator.bus(), iterator.address(), cli.channels);
+
+			if (instance == nullptr) {
+				PX4_ERR("alloc failed");
+				return PX4_ERROR;
+			}
+
+			if (OK != instance->init()) {
+				delete instance;
+				continue;
+			}
+
+			_object.store(instance);
+			_task_id = task_id_is_work_queue;
+			instance->ScheduleNow();
+			return PX4_OK;
+		}
+
+		return PX4_ERROR;
+	}
+
+	return print_usage();
 }
 
 int TFESC03::custom_command(int argc, char *argv[])
@@ -172,8 +188,8 @@ Driver for the TFESC03 ESCs.
 
 	PRINT_MODULE_USAGE_NAME("tfesc03", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Serial device", false);
 	PRINT_MODULE_USAGE_PARAM_INT('c', 4, 1, 8, "Number of channels", false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -188,8 +204,11 @@ int TFESC03::print_status()
 
 	_mixing_output.printStatus();
 
-	return 0;
+	if (_tfesc03_common) {
+		_tfesc03_common->GetStatus();
+	}
 
+	return 0;
 }
 
 extern "C" __EXPORT int tfesc03_main(int argc, char *argv[])

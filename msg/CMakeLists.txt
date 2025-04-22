@@ -193,6 +193,7 @@ set(msg_files
 	SatelliteInfo.msg
 	SensorAccel.msg
 	SensorAccelFifo.msg
+  SensorAirborneParticles.msg
 	SensorBaro.msg
 	SensorCombined.msg
 	SensorCorrection.msg

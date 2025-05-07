@@ -457,7 +457,7 @@ void TFLORA::wait_busy_pin()
 
     uint64_t counter=0;
     while(counter < 100000000ul 
-       && stm32_gpioread(GPIO_PORTI|GPIO_PIN10)) //TODO drdy pin!
+       && stm32_gpioread(_drdy_gpio))
     {
       counter++;
     }

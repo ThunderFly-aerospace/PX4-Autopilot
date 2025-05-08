@@ -85,6 +85,8 @@
 #define DRV_IMU_DEVTYPE_ICM42686P 0x2D
 #define DRV_IMU_DEVTYPE_IIM42653 0x2E
 
+#define DRV_SENS_DEVTYPE_S35770  0x2F
+
 #define DRV_RNG_DEVTYPE_MB12XX   0x31
 #define DRV_RNG_DEVTYPE_LL40LS   0x32
 #define DRV_ACC_DEVTYPE_MPU6050  0x33
@@ -169,6 +171,7 @@
 #define DRV_SENS_DEVTYPE_IRLOCK       0x7d
 #define DRV_SENS_DEVTYPE_PCF8583      0x7e
 #define DRV_TEL_DEVTYPE_BST           0x7f
+
 
 // Generic types for unknown CAN sensors
 #define DRV_ACC_DEVTYPE_UAVCAN	0x80

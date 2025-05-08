@@ -241,6 +241,11 @@ fi
 if param compare SENS_EN_TMP102 1
 then
 	tmp102 start -X
+
+# S35770 counter (RPM sensor)
+if param compare -S SENS_EN_S35770 1
+then
+	s35770 start -X
 fi
 
 # probe for optional external I2C devices

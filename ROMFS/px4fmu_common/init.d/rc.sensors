@@ -220,7 +220,7 @@ then
 fi
 
 # S35770 counter (RPM sensor)
-if param compare -S SENS_EN_S35770 1
+if param compare -s SENS_EN_S35770 1
 then
 	s35770 start -X
 fi

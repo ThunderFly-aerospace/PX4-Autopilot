@@ -119,12 +119,12 @@ void S35770::RunImpl()
 
 	// Calculate RPM and accuracy estimation
 	float indicated_rpm = (((float)diffCount / _param_S35770_magnet.get()) / ((float)diffTime / 1000000.f)) * 60.f;
-	float estimated_accurancy = 1 / (float)_param_S35770_magnet.get() / ((float)diffTime / 1000000) * 60.f;
+	//float estimated_accurancy = 1 / (float)_param_S35770_magnet.get() / ((float)diffTime / 1000000) * 60.f;
 
 	// publish data to uorb
 	rpm_s msg{};
-	msg.indicated_frequency_rpm = indicated_rpm;
-	msg.estimated_accurancy_rpm = estimated_accurancy;
+	msg.rpm_estimate = indicated_rpm;
+	msg.rpm_raw = indicated_rpm;
 	msg.timestamp = hrt_absolute_time();
 	_rpm_pub.publish(msg);
 }

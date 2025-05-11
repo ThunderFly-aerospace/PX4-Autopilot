@@ -3296,7 +3296,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
 
-	PX4_INFO("TECS pitch: %f Alt %f->%f, hgtRate: %f, pitch range %f-%f \n\r ", (double)(_pitch-radians(_param_fw_psp_off.get())), (double)_current_altitude, (double)alt_sp, (double)hgt_rate_sp, (double)pitch_min_rad, (double)pitch_max_rad);
+	//PX4_INFO("TECS pitch: %f Alt %f->%f, hgtRate: %f, pitch range %f-%f \n\r ", (double)(_pitch-radians(_param_fw_psp_off.get())), (double)_current_altitude, (double)alt_sp, (double)hgt_rate_sp, (double)pitch_min_rad, (double)pitch_max_rad);
 
 	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
 		     _current_altitude,

@@ -678,6 +678,8 @@ FixedwingPositionControl::getManualHeightRateSetpoint()
 void
 FixedwingPositionControl::updateManualTakeoffStatus()
 {
+  if (_autogyro_takeoff.autogyroTakeoffEnabled())
+    return
 
 //TF CHECK
 //

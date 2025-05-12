@@ -173,7 +173,7 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 
 			if (rotor_rpm < param_ag_rotor_flight_rpm_.get()) {
 				ready_for_release = false;
-				PX4_INFO("Takeofff, waiting for flight rpm.");
+				PX4_INFO("Takeofff, waiting for flight rpm: current: %f expected: %f",(double)rotor_rpm,(double)(param_ag_rotor_flight_rpm_.get()));
 				// Some histesis needs to be applied for the start interrupt procedure.
 				// Currently, this does not allow the start to be interrupted.
 				//_state = AutogyroTakeoffState::PRE_TAKEOFF_PREROTATE;
@@ -183,8 +183,8 @@ void AutogyroTakeoff::update(const hrt_abstime &time_now, const float takeoff_ai
 			// check minimal airspeed
 			if (takeoff_airspeed < (param_fw_airspd_min_.get() * param_rwto_airspd_scl_.get())) {
 				ready_for_release = false;
-				PX4_INFO("Takeofff, waiting for min airspeed.");
-			}
+				PX4_INFO("Takeofff, waiting for min airspeed: current: %f expected: %f ",(double)takeoff_airspeed, (double)(param_fw_airspd_min_.get() * param_rwto_airspd_scl_.get()));
+			  }
 
 			if (ready_for_release) {
 				initial_yaw_ = get_bearing_to_next_waypoint(initial_wp_(0), initial_wp_(1), current_pos_global(0), current_pos_global(1));

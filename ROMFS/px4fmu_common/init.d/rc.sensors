@@ -193,10 +193,17 @@ then
 	sht3x start -X -a 0x45
 fi
 
+
 # SEN54 and SPS30 AIRBORNE_PARTICLES, external I2C
 if param compare -s SENS_EN_SEN_AP 1
 then
 	sensirion_ap start -X
+fi
+
+# SHT4x temperature and hygrometer sensor, external I2C
+if param compare -s SENS_EN_SHT4X 1
+then
+	sht4x start -X
 fi
 
 # IR-LOCK sensor external I2C

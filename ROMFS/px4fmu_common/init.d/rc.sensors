@@ -198,6 +198,12 @@ then
 	sht3x start -X -a 0x45
 fi
 
+# SHT4x temperature and hygrometer sensor, external I2C
+if param compare -s SENS_EN_SHT4X 1
+then
+	sht4x start -X
+fi
+
 # IR-LOCK sensor external I2C
 if param compare -s SENS_EN_IRLOCK 1
 then

@@ -255,7 +255,7 @@
 
 #define DRV_SENS_DEVTYPE_SPS30 0xE9
 #define DRV_SENS_DEVTYPE_SENSIRION_AP 0xEA
-
+#define DRV_TFLORA          0xEB
 
 #define DRV_DEVTYPE_UNUSED		0xff
 

@@ -127,6 +127,26 @@ SPI::init()
 	return PX4_OK;
 }
 
+void SPI::select()
+{
+	SPI_SETFREQUENCY(_dev, _frequency);
+	SPI_SETMODE(_dev, _mode);
+	SPI_SETBITS(_dev, 8);
+	SPI_SELECT(_dev, _device, true);
+}
+
+uint8_t SPI::transfer(uint8_t send)
+{
+  uint8_t recv;
+  SPI_EXCHANGE(_dev, &send, &recv, 1);
+  return recv;
+}
+
+void SPI::deselect()
+{
+  SPI_SELECT(_dev, _device, false);
+}
+
 int
 SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {

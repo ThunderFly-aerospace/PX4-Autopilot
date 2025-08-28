@@ -135,7 +135,7 @@ SHT4X::sensor_compouse_msg(bool send)
 		measured_temperature = (float) 175 * (data[0] << 8 | data[1]) / 65535 - 45;
 		measured_humidity = (float) 125 * (data[3] << 8 | data[4]) / 65535 - 6;
 
-		PX4_INFO("SHT4x: Temp: %.3f, Hum: %.3f", (double)measured_temperature, (double)measured_humidity);
+		//PX4_INFO("SHT4x: Temp: %.3f, Hum: %.3f", (double)measured_temperature, (double)measured_humidity);
 
 		if (measured_humidity < 0) { measured_humidity = 0; }
 
@@ -191,7 +191,7 @@ SHT4X::init_sensor()
 void
 SHT4X::RunImpl()
 {
-	PX4_INFO("SHT4X: RunImpl");
+	//PX4_INFO("SHT4X: RunImpl");
 	sensor_compouse_msg(true);
 }
 

@@ -1,5 +1,0 @@
-menuconfig DRIVERS_TFESC03
-	bool "tfesc03"
-	default n
-	---help---
-		Enable support for TFESC03

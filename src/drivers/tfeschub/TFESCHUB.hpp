@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TFESC03.hpp"
+#include "TFESCHUB.hpp"
 
 
 #include <stdint.h>
@@ -55,13 +55,13 @@
 
 using namespace time_literals;
 
-#define MODULE_NAME "tfesc03"
+#define MODULE_NAME "tfeschub"
 
-class TFESC03 : public ModuleBase<TFESC03>, public OutputModuleInterface
+class TFESCHUB : public ModuleBase<TFESCHUB>, public OutputModuleInterface
 {
 public:
-	TFESC03(const char *device, uint8_t channels_count);
-	virtual ~TFESC03();
+	TFESCHUB(uint8_t channels_count);
+	virtual ~TFESCHUB();
 
 	static int task_spawn(int argc, char *argv[]);
 	static int custom_command(int argc, char *argv[]);

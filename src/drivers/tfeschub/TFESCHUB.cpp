@@ -30,13 +30,13 @@
  *
  ****************************************************************************/
 
-#include "TFESC03.hpp"
+#include "TFESCHUB.hpp"
 
 #include <px4_platform_common/sem.hpp>
 
-TFESC03::TFESC03(const char *device, uint8_t channels_count) :
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
-	_mixing_output{"TFESC03", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
+TFESCHUB::TFESCHUB(uint8_t channels_count) :
+	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
+	_mixing_output{"TFESCHUB", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
 	_channels_count(channels_count)
 {
 	//strncpy(_device, device, sizeof(_device) - 1);
@@ -49,19 +49,19 @@ TFESC03::TFESC03(const char *device, uint8_t channels_count) :
 
 }
 
-TFESC03::~TFESC03()
+TFESCHUB::~TFESCHUB()
 {
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
 }
 
-int TFESC03::init()
+int TFESCHUB::init()
 {
 	PX4_INFO("Initialize I2C device here.");
 	return 0;
 }
 
-void TFESC03::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
+void TFESCHUB::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 {
 	PX4_INFO("Send ESC outputs");
 	for (uint8_t i = 0; i < motor_cnt; i++) {
@@ -70,7 +70,7 @@ void TFESC03::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 	// Placeholder for I2C write
 }
 
-bool TFESC03::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_outputs,
+bool TFESCHUB::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_outputs,
 			    unsigned num_control_groups_updated)
 {
 	PX4_INFO("Update outputs");
@@ -106,7 +106,7 @@ bool TFESC03::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_
 	return false;
 }
 
-void TFESC03::Run()
+void TFESCHUB::Run()
 {
 	if (should_exit()) {
 		PX4_INFO("Should exit");
@@ -156,9 +156,9 @@ void TFESC03::Run()
 	perf_end(_cycle_perf);
 }
 
-int TFESC03::task_spawn(int argc, char *argv[])
+int TFESCHUB::task_spawn(int argc, char *argv[])
 {
-	TFESC03 *instance = new TFESC03(argv[1], (uint8_t)atoi(argv[2]));
+	TFESCHUB *instance = new TFESCHUB(4);
 
 	if (instance) {
 		_object.store(instance);
@@ -179,12 +179,12 @@ int TFESC03::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int TFESC03::custom_command(int argc, char *argv[])
+int TFESCHUB::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int TFESC03::print_usage(const char *reason)
+int TFESCHUB::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_INFO("%s\n", reason);
@@ -193,20 +193,19 @@ int TFESC03::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Driver for the TFESC03 ESCs.
+Driver for the TFESCHUB ESCs.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("tfesc03", "driver");
+	PRINT_MODULE_USAGE_NAME("TFESCHUB", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "Serial device", false);
 	PRINT_MODULE_USAGE_PARAM_INT('c', 4, 1, 8, "Number of channels", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-int TFESC03::print_status()
+int TFESCHUB::print_status()
 {
 	PX4_INFO("Running");
 	PX4_INFO("Channels: %u", (unsigned)_channels_count);
@@ -219,8 +218,8 @@ int TFESC03::print_status()
 
 }
 
-extern "C" __EXPORT int tfesc03_main(int argc, char *argv[])
+extern "C" __EXPORT int tfeschub_main(int argc, char *argv[])
 {
-	return TFESC03::main(argc, argv);
+	return TFESCHUB::main(argc, argv);
 }
 

@@ -31,12 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__tfesc03
-	MAIN tfesc03
+	MODULE drivers__tfeschub
+	MAIN tfeschub
 	COMPILE_FLAGS
 	SRCS
-		TFESC03.cpp
-		TFESC03.hpp
+		TFESCHUB.cpp
+		TFESCHUB.hpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

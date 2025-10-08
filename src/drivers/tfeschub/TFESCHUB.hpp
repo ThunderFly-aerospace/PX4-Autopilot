@@ -1,8 +1,5 @@
 #pragma once
 
-#include "TFESCHUB.hpp"
-
-
 #include <stdint.h>
 
 #include <px4_defines.h>
@@ -28,7 +25,8 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/esc_status.h>
-#include <uORB/topics/led_control.h>
+#include <uORB/topics/tf_esc_report.h>
+#include <uORB/topics/tf_esc_set.h>
 
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
@@ -74,7 +72,6 @@ public:
 
 private:
 	void Run() override;
-	inline void send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt);
 
 	MixingOutput		_mixing_output;
 	perf_counter_t		_cycle_perf{nullptr};
@@ -85,17 +82,12 @@ private:
 
 
 	bool _initialized{false};
-	//char _device[DEVICE_ARGUMENT_MAX_LENGTH] {};
-	//int  _uart_fd{-1};
-
-	// const uint8_t _device_mux_map[TAP_ESC_MAX_MOTOR_NUM]  = ESC_POS;
-	// const uint8_t _device_dir_map[TAP_ESC_MAX_MOTOR_NUM]  = ESC_DIR;
-
-	// ESC_UART_BUF _uartbuf{};
-	// EscPacket    _packet{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_feedback_pub{ORB_ID(esc_status)};
 	esc_status_s      _esc_feedback{};
+	uORB::Publication<tf_esc_set_s> _tf_esc_set_pub{ORB_ID(tf_esc_set)};
+  tf_esc_set_s      _tf_esc_set{};
+
 	uint8_t    	  _channels_count{0}; 		///< number of ESC channels
 	uint8_t 	  _responding_esc{0};
 

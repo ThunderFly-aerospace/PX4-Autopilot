@@ -57,49 +57,40 @@ TFESCHUB::~TFESCHUB()
 
 int TFESCHUB::init()
 {
-	PX4_INFO("Initialize I2C device here.");
+	PX4_INFO("Initialize TFESCHUB.");
 	return 0;
-}
-
-void TFESCHUB::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
-{
-	PX4_INFO("Send ESC outputs");
-	for (uint8_t i = 0; i < motor_cnt; i++) {
-		PX4_INFO("Target power for motor %u: %u", i, (unsigned)pwm[i]);
-	}
-	// Placeholder for I2C write
 }
 
 bool TFESCHUB::updateOutputs(bool stop_motors, uint16_t outputs[8], unsigned num_outputs,
 			    unsigned num_control_groups_updated)
 {
-	PX4_INFO("Update outputs");
+	//PX4_INFO("Update outputs");
 	if (_initialized) {
-		uint16_t motor_out[8] {0};
 
-		for (uint8_t i = 0; i < num_outputs; ++i) {
-			motor_out[i] = outputs[i];
+    //send output
+    PX4_INFO("Publish: %d",outputs[0]);
+    for (uint8_t i = 0; i < num_outputs; i++) {
+			_tf_esc_set.output[i]=outputs[i];
 		}
-
-
-		send_esc_outputs(motor_out, num_outputs);
+    _tf_esc_set.timestamp = hrt_absolute_time();
+	  _tf_esc_set_pub.publish(_tf_esc_set);
 
 		// Remove parsing real feedback, set dummy data
 		for (uint8_t i = 0; i < num_outputs; i++) {
 			_esc_feedback.esc[i].timestamp = hrt_absolute_time();
-			_esc_feedback.esc[i].esc_rpm = motor_out[i] * 10; // example dummy speed
+			_esc_feedback.esc[i].esc_rpm = outputs[i] * 10; // example dummy speed
 			_esc_feedback.esc[i].esc_voltage = 8.5f;
-			_esc_feedback.esc[i].esc_current = motor_out[i] * 0.01f; // example dummy current
+			_esc_feedback.esc[i].esc_current = outputs[i] * 0.01f; // example dummy current
 			_esc_feedback.esc[i].esc_state = 0; // arbitrary
 		}
 		_esc_feedback.esc_count = num_outputs;
 		_esc_feedback.timestamp = hrt_absolute_time();
 		_esc_feedback_pub.publish(_esc_feedback);
 
-		PX4_INFO("Published esc feedback");
+		/*PX4_INFO("Published esc feedback");
 		PX4_INFO("RPM: %u, Voltage: %.2f, Current: %.2f", (unsigned)_esc_feedback.esc[0].esc_rpm,
 			 (double)_esc_feedback.esc[0].esc_voltage, (double)_esc_feedback.esc[0].esc_current);
-
+*/
 		return true;
 	}
 
@@ -144,9 +135,9 @@ void TFESCHUB::Run()
 		_mixing_output.update();
 
 		/* update output status if armed */
-		bool outputs_on;
-		outputs_on = _mixing_output.armed().armed;
-		PX4_INFO("Outputs on: %d", outputs_on);
+		//bool outputs_on;
+		//outputs_on = _mixing_output.armed().armed;
+		//PX4_INFO("Outputs on: %d", outputs_on);
 
 	}
 

@@ -1,0 +1,6 @@
+module_name: TFESCHUB Output
+actuator_output:
+  output_groups:
+    - param_prefix: TFESCHUB
+      channel_label: 'ESC'
+      num_channels: 4

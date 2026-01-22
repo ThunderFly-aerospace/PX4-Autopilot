@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TFESCHUB
+	bool "tfeschub"
+	default n
+	---help---
+		Enable support for TFESCHUB

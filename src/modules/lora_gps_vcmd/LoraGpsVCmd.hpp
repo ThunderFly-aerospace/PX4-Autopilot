@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/parameter_update.h>
 
 class LoraGpsVCmd : public ModuleBase<LoraGpsVCmd>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -91,6 +92,7 @@ private:
 
   uint64_t lastIncomingTimestamp;
   uint64_t lastOutgoingTimestamp;
+  uint64_t lastCheck;
 
   enum {
       LATLON_OK = (1<<0),
@@ -102,5 +104,10 @@ private:
   int fill_lora_outgoing_msg(struct sensor_gps_s *in, uint8_t *out, int nmaxbytes);
   uint32_t pack_latlon(double v);
 
-  int32_t beacon_interval_S;
+	// paramter live update
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::LORA_GPS_INT>) _beacon_interval_S   /**< example parameter */
+	)
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1000000};
+
 };

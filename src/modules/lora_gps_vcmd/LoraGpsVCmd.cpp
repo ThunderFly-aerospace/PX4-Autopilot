@@ -45,6 +45,8 @@ LoraGpsVCmd::LoraGpsVCmd() :
   status.timestamp=0;
   cmd.timestamp=0;
 
+  next_hi=_low_count.get();
+
   lastIncomingTimestamp=0;
   lastOutgoingTimestamp=0;
 }
@@ -103,6 +105,21 @@ LoraGpsVCmd::Run()
       //publish message for send
       lora_message_s outgoing;
       outgoing.timestamp = time;
+      outgoing.sf = _low_sf.get();
+      if(next_hi>=0)
+      {
+        if(next_hi==0)
+        {
+          PX4_INFO("Setting Hi SF %ld",_high_sf.get());
+          outgoing.sf = _high_sf.get();
+          next_hi=_low_count.get();
+        }
+        else
+        {
+          PX4_INFO("Setting Lo SF %ld",_low_sf.get());
+          next_hi--;
+        }
+      }
       outgoing.len = fill_lora_outgoing_msg(&gps, outgoing.data, sizeof(outgoing.data));
       _outgoing_pub.publish(outgoing);
       lastOutgoingTimestamp=time;    

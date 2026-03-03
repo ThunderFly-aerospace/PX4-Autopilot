@@ -1,0 +1,12 @@
+module_name: lora_gps_vcmd
+parameters:
+  - group: LoRA
+    definitions:
+      LORA_GPS_INT:
+        description:
+          short: Lora gps beacon interval
+          long: How often is lora GPS beacon emit.
+        type: int32
+        default: 120
+        min: 20
+        max: 86400

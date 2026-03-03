@@ -40,14 +40,6 @@ LoraGpsVCmd::LoraGpsVCmd() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 
-  //get interval from param
-	/*_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
-
-	if (_p_cam_cap_fback != PARAM_INVALID) {
-		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
-	}*/
-  beacon_interval_S=30;
-
   incoming.timestamp=0;
   gps.timestamp=0;
   status.timestamp=0;
@@ -61,14 +53,14 @@ bool
 LoraGpsVCmd::init()
 {
 	if (!_incoming_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
+		PX4_ERR("incomming callback registration failed");
 		return false;
 	}
 
 	_outgoing_pub.advertise();
   _vcmd_pub.advertise();
 
-  ScheduleDelayed(10*1000*1000);
+  ScheduleDelayed(1000*1000); //1s
 
 	return true;
 }
@@ -80,6 +72,16 @@ LoraGpsVCmd::Run()
 		_incoming_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
+	}
+
+  //live param update from doc
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// If any parameter updated, call updateParams() to check if
+		// this class attributes need updating (and do so).
+		updateParams();
 	}
 
   _incoming_sub.copy(&incoming);
@@ -94,16 +96,21 @@ LoraGpsVCmd::Run()
   }
 
   uint64_t time=hrt_absolute_time();
-  if(time-lastOutgoingTimestamp>=beacon_interval_S*1000*1000)
+  if(time-lastCheck>=1000000llu) //check 1 per sec
   {
-    //publish message for send
-    lora_message_s outgoing;
-    outgoing.timestamp = time;
-    outgoing.len = fill_lora_outgoing_msg(&gps, outgoing.data, sizeof(outgoing.data));
-    _outgoing_pub.publish(outgoing);
+    if(time-lastOutgoingTimestamp>=_beacon_interval_S.get()*1000llu*1000llu)
+    {
+      //publish message for send
+      lora_message_s outgoing;
+      outgoing.timestamp = time;
+      outgoing.len = fill_lora_outgoing_msg(&gps, outgoing.data, sizeof(outgoing.data));
+      _outgoing_pub.publish(outgoing);
+      lastOutgoingTimestamp=time;    
+      PX4_INFO("Next beacon in: %ld s", _beacon_interval_S.get());
+    }
 
-    lastOutgoingTimestamp=time;    
-    ScheduleDelayed(beacon_interval_S*1000*1000);
+    lastCheck=time;
+    ScheduleDelayed(1000*1000);
   }
 }
 
@@ -209,6 +216,7 @@ LoraGpsVCmd module consumes GPS and compress data for Lora message. Potentionaly
 
 	return 0;
 }
+
 
 extern "C" __EXPORT int lora_gps_vcmd_main(int argc, char *argv[])
 {

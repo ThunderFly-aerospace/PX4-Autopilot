@@ -33,6 +33,8 @@
 px4_add_module(
 	MODULE modules__lora_gps_vcmd
 	MAIN lora_gps_vcmd
+  MODULE_CONFIG
+  	module.yaml
 	SRCS
 		LoraGpsVCmd.cpp
 		LoraGpsVCmd.hpp

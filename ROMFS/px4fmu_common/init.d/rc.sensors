@@ -243,6 +243,17 @@ then
 	tmp102 start -X
 fi
 
+#enable TFLORA on extrnal SPI
+if param compare DRV_EN_TFLORA 1
+then
+	tflora start -S
+fi
+
+if param compare DRV_EN_TFLORA 1
+then
+	lora_gps_vcmd start
+fi
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then

@@ -102,7 +102,5 @@ private:
   int fill_lora_outgoing_msg(struct sensor_gps_s *in, uint8_t *out, int nmaxbytes);
   uint32_t pack_latlon(double v);
 
-	/*param_t _p_cam_cap_fback;
-	int32_t _cam_cap_fback{0};*/
-  uint64_t beacon_interval_S;
+  int32_t beacon_interval_S;
 };

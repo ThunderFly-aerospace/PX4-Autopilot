@@ -1,2 +1,12 @@
 module_name: tflora
-
+parameters:
+  - group: LoRA
+    definitions:
+      DRV_EN_TFLORA:
+        description:
+          short: Enable Tflora driver on boot
+          long: Enable Tflora driver on boot
+        type: int32
+        default: 1
+        min: 0
+        max: 1

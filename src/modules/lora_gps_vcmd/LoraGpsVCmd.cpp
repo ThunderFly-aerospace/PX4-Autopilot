@@ -41,12 +41,17 @@ LoraGpsVCmd::LoraGpsVCmd() :
 {
 
   //get interval from param
-	/*_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
+	param_t p_beacon_interval = param_find("LORA_GPS_INT");
 
-	if (_p_cam_cap_fback != PARAM_INVALID) {
-		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
-	}*/
-  beacon_interval_S=30;
+	if (p_beacon_interval != PARAM_INVALID) {
+		param_get(p_beacon_interval,&beacon_interval_S);
+    PX4_INFO("Using beacon interval %ld",beacon_interval_S);
+	}
+  else
+  {
+    PX4_WARN("Using default beacon interval 30s");
+    beacon_interval_S=30;
+  }
 
   incoming.timestamp=0;
   gps.timestamp=0;
@@ -61,14 +66,14 @@ bool
 LoraGpsVCmd::init()
 {
 	if (!_incoming_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
+		PX4_ERR("incomming callback registration failed");
 		return false;
 	}
 
 	_outgoing_pub.advertise();
   _vcmd_pub.advertise();
 
-  ScheduleDelayed(10*1000*1000);
+  ScheduleDelayed(10*1000*1000); //10s
 
 	return true;
 }
@@ -94,13 +99,14 @@ LoraGpsVCmd::Run()
   }
 
   uint64_t time=hrt_absolute_time();
-  if(time-lastOutgoingTimestamp>=beacon_interval_S*1000*1000)
+  if(time-lastOutgoingTimestamp>=beacon_interval_S*1000llu*1000llu || time < beacon_interval_S*1000llu*1000llu)
   {
     //publish message for send
     lora_message_s outgoing;
     outgoing.timestamp = time;
     outgoing.len = fill_lora_outgoing_msg(&gps, outgoing.data, sizeof(outgoing.data));
     _outgoing_pub.publish(outgoing);
+    //PX4_INFO("Publishing outgoing LoRA message");
 
     lastOutgoingTimestamp=time;    
     ScheduleDelayed(beacon_interval_S*1000*1000);

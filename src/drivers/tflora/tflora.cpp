@@ -148,8 +148,11 @@ void TFLORA::RunImpl()
     {
       //send message...
       PX4_INFO("sending lora message...");
+      int sf=outMsg.sf;
+      if(sf<0 || sf>5)
+        sf=EU_DR_SF7;
   
-      LMIC_setDrTxpow(ordinary_dr, KEEP_TXPOWADJ);
+      LMIC_setDrTxpow(sf, KEEP_TXPOWADJ);
 
       LMIC_setTxData2(1, outMsg.data, outMsg.len, 0);
       outMsg.timestamp=0;//means message sended...
@@ -283,7 +286,8 @@ void TFLORA::processDownlink(uint8_t *data, int dataLen)
     printf("\n");
 
     lora_message_s msg{};
-    msg.timestamp = hrt_absolute_time();    
+    msg.timestamp = hrt_absolute_time();
+    msg.sf = 0;
     msg.len = dataLen;
     if(msg.len>58)
       msg.len=58;

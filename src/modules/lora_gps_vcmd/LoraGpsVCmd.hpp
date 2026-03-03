@@ -94,6 +94,8 @@ private:
   uint64_t lastOutgoingTimestamp;
   uint64_t lastCheck;
 
+  int next_hi;
+
   enum {
       LATLON_OK = (1<<0),
       ALT_OK    = (1<<1),
@@ -106,7 +108,10 @@ private:
 
 	// paramter live update
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::LORA_GPS_INT>) _beacon_interval_S   /**< example parameter */
+		(ParamInt<px4::params::LORA_GPS_INT>) _beacon_interval_S,
+		(ParamInt<px4::params::LORA_GPS_L_SF>) _low_sf,
+		(ParamInt<px4::params::LORA_GPS_H_SF>) _high_sf,
+		(ParamInt<px4::params::LORA_SF_L_H>) _low_count
 	)
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1000000};
 

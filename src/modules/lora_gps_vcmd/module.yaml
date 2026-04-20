@@ -1,0 +1,49 @@
+module_name: lora_gps_vcmd
+parameters:
+  - group: LoRA
+    definitions:
+      LORA_GPS_INT:
+        description:
+          short: Lora gps beacon interval
+          long: How often is lora GPS beacon emited.
+        type: int32
+        default: 120
+        min: 20
+        max: 86400
+
+      LORA_GPS_L_SF:
+        description:
+          short: Lora gps normal SF
+          long: LoRA beacon Spread Factor for normal beacon
+        type: enum
+        values:
+          0: SF12
+          1: SF11
+          2: SF10
+          3: SF9
+          4: SF8
+          5: SF7
+        default: 5
+
+      LORA_GPS_H_SF:
+        description:
+          short: Lora gps extra SF
+          long: LoRA beacon Spread Factor for extra beacon
+        type: enum
+        values:
+          0: SF12
+          1: SF11
+          2: SF10
+          3: SF9
+          4: SF8
+          5: SF7
+        default: 4
+
+      LORA_SF_L_H:
+        description:
+          short: Lora gps normal SF per one extra SF
+          long: Count of normal SF LoRA beacons per one extra SF beacon, -1 to disable extra SF
+        type: int32
+        default: 10
+        min: -1
+        max: 100000

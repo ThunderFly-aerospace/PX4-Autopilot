@@ -98,7 +98,7 @@ LoraGpsVCmd::Run()
   }
 
   uint64_t time=hrt_absolute_time();
-  if(time-lastCheck>=1000000llu) //check 1 per sec
+  if(time-lastCheck>=900000llu) //check 0.9 sec, dont miss 1s call
   {
     if(time-lastOutgoingTimestamp>=_beacon_interval_S.get()*1000llu*1000llu)
     {

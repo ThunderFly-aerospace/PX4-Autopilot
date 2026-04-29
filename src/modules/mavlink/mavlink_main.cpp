@@ -2256,7 +2256,7 @@ Mavlink::task_main(int argc, char *argv[])
 	if (_mode != MAVLINK_MODE_IRIDIUM) {
 
 		/* HEARTBEAT is constant rate stream, rate never adjusted */
-		configure_stream("HEARTBEAT", 1.0f);
+		configure_stream("HEARTBEAT", 0.5f);
 
 		/* STATUSTEXT stream */
 		configure_stream("STATUSTEXT", 20.0f);
